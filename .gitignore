@@ -1,0 +1,6 @@
+/.build/
+/build/
+/.swiftpm/
+/calibre/
+.DS_Store
+*.xcuserstate
