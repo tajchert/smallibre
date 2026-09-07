@@ -26,7 +26,8 @@ public struct ZIPArchive: Sendable {
         let directorySize = Int(data.u32(end + 12))
         var cursor = Int(data.u32(end + 16))
         guard count > 0, count <= 10_000, cursor + directorySize == end else { throw BookError.invalid("Unsupported EPUB archive directory.") }
-        var result: [Entry] = [], seen = Set<String>(), total = 0
+        var result: [Entry] = [], seen = Set<String>(), total = 0, compressedTotal = 0
+        var extents: [Range<Int>] = []
         for _ in 0..<count {
             guard cursor + 46 <= end, data.u32(cursor) == 0x02014b50 else { throw BookError.invalid("Damaged EPUB resource directory.") }
             let flags = data.u16(cursor + 8), method = data.u16(cursor + 10)
@@ -52,7 +53,13 @@ public struct ZIPArchive: Sendable {
                 throw BookError.invalid("The EPUB contains inconsistent resource headers.")
             }
             total += size
-            guard total <= Self.maximumSize else { throw BookError.invalid("The expanded EPUB exceeds the safety limit.") }
+            compressedTotal += compressedSize
+            let extent = local..<start + compressedSize
+            guard total <= Self.maximumSize, compressedTotal <= Self.maximumSize,
+                  method != 0 || size == compressedSize, !extents.contains(where: { $0.overlaps(extent) }) else {
+                throw BookError.invalid("The EPUB contains overlapping resources or exceeds the safety limit.")
+            }
+            extents.append(extent)
             if !name.hasSuffix("/") {
                 result.append(Entry(name: name, method: method, crc: data.u32(cursor + 16), size: size, compressed: data.subdata(in: start..<start + compressedSize)))
             }

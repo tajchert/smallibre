@@ -70,13 +70,12 @@ enum SafeXML {
         guard data.count <= 8 * 1024 * 1024,
               let string = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .utf16),
               !string.localizedCaseInsensitiveContains("<!ENTITY") else { throw BookError.invalid("Unsupported XML encoding, entities or document size.") }
-        let utf8 = Data(string.utf8)
         let validator = XMLBounds()
-        let parser = XMLParser(data: utf8)
+        let parser = XMLParser(data: data)
         parser.shouldResolveExternalEntities = false
         parser.delegate = validator
         guard parser.parse(), !validator.exceeded else { throw BookError.invalid("The book contains invalid or excessively nested XML.") }
-        return try XMLDocument(data: utf8, options: [.nodePreserveAll, .nodeLoadExternalEntitiesNever])
+        return try XMLDocument(data: data, options: [.nodePreserveAll, .nodeLoadExternalEntitiesNever])
     }
 }
 
