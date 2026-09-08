@@ -3,6 +3,36 @@ import XCTest
 @testable import SmallibreCore
 
 @MainActor final class ReaderStateRegressionTests: XCTestCase {
+    func testDeviceOnlySelectionExposesAvailableDetailsWithoutLibraryMatch() {
+        let model = AppModel(initialize: false)
+        model.filter = "device"
+        let metadata = BookMetadata(title: "Device-only novel", authors: ["Sample Author"], language: "en", identifier: "", publisher: "", description: "", format: "MOBI", cover: nil)
+        let mobi = ReaderBook(connection: model.reader.generation, relativePath: "novel.mobi", metadata: metadata,
+                              hash: "mobi-bytes", byteCount: 1234, issue: nil)
+        let kfx = ReaderBook(connection: model.reader.generation, relativePath: "Unknown title.kfx", metadata: nil,
+                             hash: "kfx-bytes", byteCount: 5678, issue: "KFX metadata is unavailable.")
+        model.reader.books = [mobi, kfx]
+        model.reader.selectedIDs = [mobi.id]
+        XCTAssertNil(model.selected)
+        XCTAssertEqual(model.selectedDeviceBook?.metadata?.authors, ["Sample Author"])
+        XCTAssertEqual(model.selectedDeviceBook?.byteCount, 1234)
+        model.reader.selectedIDs = [kfx.id]
+        XCTAssertEqual(model.selectedDeviceBook?.title, "Unknown title")
+        XCTAssertEqual(model.selectedDeviceBook?.formatLabel, "KFX")
+        XCTAssertEqual(model.selectedDeviceBook?.issue, "KFX metadata is unavailable.")
+        model.search = "no matching book"
+        XCTAssertNil(model.selectedDeviceBook)
+        model.search = ""
+        model.reader.selectedIDs = [mobi.id, kfx.id]
+        XCTAssertNil(model.selectedDeviceBook)
+        model.reader.selectedIDs = [kfx.id]
+        model.reader.books = []
+        XCTAssertNil(model.selectedDeviceBook)
+        model.reader.books = [mobi]; model.reader.selectedIDs = [mobi.id]
+        model.filter = "all"
+        XCTAssertNil(model.selectedDeviceBook)
+    }
+
     func testExportOnlyRoutesToSelectedReaderFolder() {
         let model = AppModel(initialize: false)
         let external = URL(fileURLWithPath: "/Volumes/Backup/Exports")

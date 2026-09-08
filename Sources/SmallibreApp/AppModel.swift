@@ -52,11 +52,14 @@ final class AppModel {
             reader.libraryReady = true; startupFailure = nil
         } catch { reader.libraryReady = false; startupFailure = error.localizedDescription }
     }
+    var selectedDeviceBook: ReaderBook? {
+        guard filter == "device" else { return nil }
+        let selected = reader.selectedBooks(search: search)
+        return selected.count == 1 ? selected.first : nil
+    }
     var selected: LibraryBook? {
         if filter == "device" {
-            let selected = reader.selectedBooks(search: search)
-            guard selected.count == 1 else { return nil }
-            return reader.libraryBook(deviceHash: selected.first?.hash, library: books)
+            return reader.libraryBook(deviceHash: selectedDeviceBook?.hash, library: books)
         }
         return books.first { $0.id == selection }
     }

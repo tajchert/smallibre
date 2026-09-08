@@ -29,6 +29,7 @@ struct LibraryView: View {
                     }.pickerStyle(.inline).labelsHidden()
                 }
                 label: { Label("Sort", systemImage: "arrow.up.arrow.down") }
+                .help(model.filter == "device" ? "Sort device books. Recently added uses file creation dates, or modification dates when unavailable." : "Sort library books")
             }
         }
         .searchable(text: $model.search, isPresented: $searchPresented, placement: .toolbar, prompt: "Search books or authors")

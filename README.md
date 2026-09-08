@@ -14,15 +14,15 @@ Smallibre brings your ebook library and your connected reader into one place. Ad
 
 Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **6.7 MB**. No Calibre installation or additional runtime is needed.
 
-> **Early alpha:** mounted-reader management is available today. Version 0.3.4 includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
+> **Early alpha:** mounted-reader management is available today. Version 0.3.5 includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
 
 ## What you can do
 
 - **Build your bookshelf.** Import EPUB, MOBI, and standalone AZW3 books. Browse covers, search, and sort your library. Identical files are detected automatically.
 - **Make books yours.** Edit book details, review suggestions from Open Library, and adjust fonts, spacing, and margins in reflowable EPUBs.
-- **Send EPUBs to Kindle.** Click **Send to device** to detect a mounted Kindle, convert the EPUB, and send a verified copy. After sending, the device list and copy badge update automatically; books sent during the session appear first, and matching books show a disabled **Already on device** button. Folder selection is only needed if automatic detection fails; the fallback also supports EPUB readers. Use the export icon beside **Send to device** to choose a file format and destination folder. EPUB books can be exported as EPUB or Kindle AZW3; MOBI/AZW3 books retain their original format. Supported EPUBs keep saved metadata and typography changes.
+- **Send EPUBs to Kindle.** Click **Send to device** to detect a mounted Kindle, convert the EPUB, and send a verified copy. After sending, the device list and copy badge update automatically; the default recent sort shows newly sent books first, and matching books show a disabled **Already on device** button. Folder selection is only needed if automatic detection fails; the fallback also supports EPUB readers. Use the export icon beside **Send to device** to choose a file format and destination folder. EPUB books can be exported as EPUB or Kindle AZW3; MOBI/AZW3 books retain their original format. Supported EPUBs keep saved metadata and typography changes.
 - **Take a look inside.** Preview EPUB chapters before exporting a new copy.
-- **See what’s on your Kindle.** Browse a mounted reader and see exact matches with your Mac library.
+- **See what’s on your Kindle.** Browse a mounted reader, see matches with your Mac library, and inspect device-only books. The toolbar sorts device books by title, author, or recently added (file creation date, falling back to modification date). When metadata is unavailable, including for KFX files, the details panel shows the filename, format, size, and device path.
 - **Manage device copies.** Download supported books, back up files, or delete selected copies after a verified local backup. Update title, author, and publisher on supported DRM-free MOBI/AZW3 device files.
 
 ## Screenshots

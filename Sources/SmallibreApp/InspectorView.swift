@@ -49,6 +49,8 @@ struct InspectorView: View {
                         Label("Your original stays untouched", systemImage: "checkmark.shield").font(.system(size: 10)).foregroundStyle(.secondary).frame(maxWidth: .infinity)
                     }.padding(24)
                 }
+            } else if let book = model.selectedDeviceBook {
+                deviceDetails(book)
             } else {
                 VStack(spacing: 13) {
                     Image(systemName: "book.pages").font(.system(size: 32, weight: .ultraLight)).foregroundStyle(.tertiary)
@@ -57,6 +59,44 @@ struct InspectorView: View {
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }.background(SmallibreTheme.canvas)
+    }
+    private func deviceDetails(_ book: ReaderBook) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    Text("DEVICE BOOK DETAILS").font(.system(size: 10, weight: .semibold)).tracking(1.3).foregroundStyle(.secondary)
+                    Spacer()
+                    Image(systemName: "externaldrive").foregroundStyle(.tertiary)
+                }
+                Image(systemName: "book.closed").font(.system(size: 64, weight: .ultraLight))
+                    .foregroundStyle(SmallibreTheme.accent).frame(maxWidth: .infinity).padding(.vertical, 24)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(book.title).font(.system(size: 23, design: .serif)).textSelection(.enabled)
+                    Text((book.metadata?.authors ?? []).isEmpty ? "Unknown author" : (book.metadata?.authors ?? []).joined(separator: ", "))
+                        .font(.system(size: 12)).foregroundStyle(.secondary).textSelection(.enabled)
+                }
+                HStack {
+                    badge(book.formatLabel)
+                    badge(book.byteCount > 0 ? ByteCountFormatter.string(fromByteCount: Int64(book.byteCount), countStyle: .file) : "Size unavailable")
+                }
+                Label("On device · not in your library", systemImage: "externaldrive").font(.caption).foregroundStyle(.secondary)
+                Divider()
+                if let metadata = book.metadata {
+                    if !metadata.language.isEmpty { detail("LANGUAGE", Locale.current.localizedString(forLanguageCode: metadata.language) ?? metadata.language) }
+                    if !metadata.publisher.isEmpty { detail("PUBLISHER", metadata.publisher) }
+                    if !metadata.identifier.isEmpty { detail("IDENTIFIER", metadata.identifier) }
+                    if !metadata.description.isEmpty {
+                        Text(metadata.description).font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(5).textSelection(.enabled)
+                    }
+                } else {
+                    Text("Book metadata is unavailable. Showing the device filename and file details.").font(.caption).foregroundStyle(.secondary)
+                }
+                detail("DEVICE FILE", book.relativePath)
+                if let issue = book.issue {
+                    Label(issue, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                }
+            }.padding(24)
+        }
     }
     private func badge(_ value: String) -> some View { Text(value).font(.system(size: 9, weight: .medium)).padding(.horizontal, 7).padding(.vertical, 4).background(.primary.opacity(0.05), in: .capsule).foregroundStyle(.secondary) }
     private func detail(_ label: String, _ value: String) -> some View {

@@ -10,6 +10,7 @@ public struct ReaderBook: Identifiable, Codable, Sendable {
     public let hash: String
     public let byteCount: Int
     public let issue: String?
+    public var addedAt: Date? = nil
     public var metadataEditable = false
     public var canImport: Bool { metadata != nil && issue == nil }
     public var formatLabel: String { metadata?.format ?? URL(fileURLWithPath: relativePath).pathExtension.uppercased() }
@@ -52,15 +53,18 @@ public actor ReaderStore {
             let relative = String(url.path.dropFirst(root.path.count + 1))
             var info = stat()
             let fingerprint = lstat(url.path, &info) == 0 ? "\(rootIdentity ?? ""):\(info.st_ino):\(info.st_size):\(info.st_mtimespec.tv_sec):\(info.st_mtimespec.tv_nsec):\(info.st_ctimespec.tv_sec):\(info.st_ctimespec.tv_nsec)" : ""
+            let timestamp = info.st_birthtimespec.tv_sec > 0 ? info.st_birthtimespec : info.st_mtimespec
+            let addedAt = !fingerprint.isEmpty && timestamp.tv_sec > 0
+                ? Date(timeIntervalSince1970: Double(timestamp.tv_sec) + Double(timestamp.tv_nsec) / 1_000_000_000) : nil
             if !fingerprint.isEmpty, let cached = cache[relative], cached.fingerprint == fingerprint {
-                var book = cached.book; book.connection = connection
+                var book = cached.book; book.connection = connection; book.addedAt = addedAt
                 books.append(book); nextCache[relative] = Cached(fingerprint: fingerprint, book: book); cachedCount += 1; continue
             }
             let bytes: Data
             do { bytes = try read(relative) }
             catch {
                 try validateRoot()
-                books.append(ReaderBook(connection: connection, relativePath: relative, metadata: nil, hash: "", byteCount: 0, issue: error.localizedDescription))
+                books.append(ReaderBook(connection: connection, relativePath: relative, metadata: nil, hash: "", byteCount: 0, issue: error.localizedDescription, addedAt: addedAt))
                 continue
             }
             let metadata: BookMetadata?, issue: String?
@@ -70,7 +74,7 @@ public actor ReaderStore {
                     value.cover = nil; metadata = value; issue = "Protected MOBI/AZW3: metadata only. Save a file backup if needed; Smallibre cannot import or edit its content."
                 } else { metadata = nil; issue = url.pathExtension.lowercased() == "kfx" ? "KFX book. Companion resources are grouped out of this list; a single-file backup is not a complete KFX package." : error.localizedDescription }
             }
-            var book = ReaderBook(connection: connection, relativePath: relative, metadata: metadata, hash: Self.digest(bytes), byteCount: bytes.count, issue: issue)
+            var book = ReaderBook(connection: connection, relativePath: relative, metadata: metadata, hash: Self.digest(bytes), byteCount: bytes.count, issue: issue, addedAt: addedAt)
             if book.canImport, let metadata = book.metadata, ["MOBI", "AZW3"].contains(metadata.format) { book.metadataEditable = (try? MOBIMetadataEditor.prepare(bytes, metadata: metadata)) != nil }
             books.append(book)
             if !fingerprint.isEmpty { nextCache[relative] = Cached(fingerprint: fingerprint, book: book) }

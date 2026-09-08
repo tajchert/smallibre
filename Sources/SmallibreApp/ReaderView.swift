@@ -9,7 +9,7 @@ struct ReaderView: View {
     @State private var editing: ReaderBook?
     @State private var history = false
     private var selection: [ReaderBook] { reader.selectedBooks(search: model.search) }
-    private var filtered: [ReaderBook] { reader.visibleBooks(search: model.search) }
+    private var filtered: [ReaderBook] { reader.visibleBooks(search: model.search, sort: model.sort) }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Your Kindle").font(.system(size: 30, design: .serif))

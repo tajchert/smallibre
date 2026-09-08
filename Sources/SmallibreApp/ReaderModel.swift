@@ -46,8 +46,9 @@ import SmallibreCore
         if hashes.contains(book.hash) { return .original }
         return books.contains { libraryMatch(book, deviceHash: $0.hash) == .converted } ? .converted : nil
     }
-    func visibleBooks(search: String) -> [ReaderBook] {
-        books.filter { search.isEmpty || ($0.title + " " + ($0.metadata?.authors.joined(separator: " ") ?? "")).localizedStandardContains(search) }
+    func visibleBooks(search: String, sort: AppModel.Sort = .recent) -> [ReaderBook] {
+        let filtered = books.filter { search.isEmpty || ($0.title + " " + ($0.metadata?.authors.joined(separator: " ") ?? "")).localizedStandardContains(search) }
+        return ordered(filtered, at: folder, sort: sort)
     }
     func selectedBooks(search: String) -> [ReaderBook] {
         visibleBooks(search: search).filter { selectedIDs.contains($0.id) }
@@ -285,12 +286,26 @@ import SmallibreCore
             } catch is CancellationError {} catch { if operationID == token { self.error = error.localizedDescription; model.error = error.localizedDescription } }
         }
     }
-    private func ordered(_ scanned: [ReaderBook], at root: URL) -> [ReaderBook] {
-        scanned.sorted {
-            let left = sentFiles[root.appendingPathComponent($0.relativePath).standardizedFileURL] ?? .distantPast
-            let right = sentFiles[root.appendingPathComponent($1.relativePath).standardizedFileURL] ?? .distantPast
-            if left != right { return left > right }
-            return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+    private func ordered(_ scanned: [ReaderBook], at root: URL?, sort: AppModel.Sort = .recent) -> [ReaderBook] {
+        func date(_ book: ReaderBook) -> Date {
+            if let root, let sent = sentFiles[root.appendingPathComponent(book.relativePath).standardizedFileURL] { return sent }
+            return book.addedAt ?? .distantPast
+        }
+        return scanned.sorted {
+            switch sort {
+            case .recent:
+                let left = date($0), right = date($1)
+                if left != right { return left > right }
+            case .author:
+                let left = $0.metadata?.authors.joined(separator: ", ") ?? ""
+                let right = $1.metadata?.authors.joined(separator: ", ") ?? ""
+                if left.isEmpty != right.isEmpty { return !left.isEmpty }
+                let comparison = left.localizedStandardCompare(right)
+                if comparison != .orderedSame { return comparison == .orderedAscending }
+            case .title: break
+            }
+            let comparison = $0.title.localizedStandardCompare($1.title)
+            return comparison == .orderedSame ? $0.relativePath < $1.relativePath : comparison == .orderedAscending
         }
     }
     private func refreshAfterSend(_ result: ReaderResponse, destination: URL, connection: UUID, identity: String?, token: UUID) async {
