@@ -15,6 +15,18 @@ import XCTest
         XCTAssertEqual(reader.visibleBooks(search: "", sort: .title).map(\.id), [newer.id, older.id])
         XCTAssertEqual(reader.visibleBooks(search: "", sort: .author).map(\.id), [older.id, newer.id])
         XCTAssertEqual(reader.visibleBooks(search: "Zulu", sort: .title).map(\.id), [older.id])
+        let model = AppModel(initialize: false)
+        for sort in AppModel.Sort.allCases {
+            if model.sort != sort { model.selectSort(sort) }
+            let normal = reader.visibleBooks(search: "", sort: model.sort)
+            model.selectSort(sort)
+            XCTAssertEqual(reader.visibleBooks(search: "", sort: model.sort, reversed: model.sortReversed).map(\.id), normal.reversed().map(\.id))
+            model.selectSort(sort)
+            XCTAssertEqual(reader.visibleBooks(search: "", sort: model.sort, reversed: model.sortReversed).map(\.id), normal.map(\.id))
+        }
+        model.selectSort(.author)
+        model.selectSort(.recent)
+        XCTAssertFalse(model.sortReversed)
         XCTAssertEqual(reader.selectedIDs, [older.id])
     }
 

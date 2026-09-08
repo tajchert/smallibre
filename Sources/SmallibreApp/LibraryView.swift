@@ -24,9 +24,14 @@ struct LibraryView: View {
             }
             ToolbarItem(placement: .automatic) {
                 Menu {
-                    Picker("Sort", selection: $model.sort) {
-                        ForEach(AppModel.Sort.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }.pickerStyle(.inline).labelsHidden()
+                    ForEach(AppModel.Sort.allCases, id: \.self) { sort in
+                        Button { model.selectSort(sort) } label: {
+                            if model.sort == sort {
+                                Label("\(sort.rawValue) · \(model.sortAscending ? "Ascending" : "Descending")",
+                                      systemImage: model.sortAscending ? "arrow.up" : "arrow.down")
+                            } else { Text(sort.rawValue) }
+                        }
+                    }
                 }
                 label: { Label("Sort", systemImage: "arrow.up.arrow.down") }
                 .help(model.filter == "device" ? "Sort device books. Recently added uses file creation dates, or modification dates when unavailable." : "Sort library books")

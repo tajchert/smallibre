@@ -85,6 +85,8 @@ Shortcuts are listed in the app’s native menus and apply to the active library
 
 Search matches titles and authors. Book commands require a selection visible in the current library collection.
 
+In the Sort menu, select the active option again to toggle ascending or descending order. This works in both the library and Kindle views; the active option shows its direction. Choosing a different sort starts with newest first for Recently added or A–Z for Title and Author.
+
 ## Will it work with my reader?
 
 Smallibre currently works with readers that appear as a mounted drive or folder on your Mac. Kindle Paperwhite testing has covered inventory, transfer, download, backup, deletion of a disposable copy, and metadata updates. Reading the test copy was confirmed on the device; other models and books still need testing.

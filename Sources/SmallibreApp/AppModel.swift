@@ -11,6 +11,12 @@ final class AppModel {
     var filter = "all"
     var search = ""
     var sort: Sort = .recent
+    var sortReversed = false
+    var sortAscending: Bool { (sort != .recent) != sortReversed }
+    func selectSort(_ selected: Sort) {
+        if sort == selected { sortReversed.toggle() }
+        else { sort = selected; sortReversed = false }
+    }
     var startupFailure: String?
     private var usesDefaultLibrary = true
     var error: String?
@@ -88,13 +94,14 @@ final class AppModel {
             (filter == "all" || (filter == "prepared" ? $0.typography.enabled : $0.metadata.format == filter)) &&
             (search.isEmpty || ($0.metadata.title + " " + $0.metadata.authors.joined(separator: " ")).localizedStandardContains(search))
         }
-        return filtered.sorted {
+        let ordered = filtered.sorted {
             switch sort {
             case .recent: return $0.addedAt > $1.addedAt
             case .title: return $0.metadata.title.localizedStandardCompare($1.metadata.title) == .orderedAscending
             case .author: return $0.metadata.authors.joined().localizedStandardCompare($1.metadata.authors.joined()) == .orderedAscending
             }
         }
+        return sortReversed ? Array(ordered.reversed()) : ordered
     }
     var collectionTitle: String {
         switch filter { case "EPUB": "EPUB books"; case "MOBI": "MOBI books"; case "AZW3": "Kindle books"; case "prepared": "Personalized"; default: "Your library" }

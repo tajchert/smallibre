@@ -46,9 +46,10 @@ import SmallibreCore
         if hashes.contains(book.hash) { return .original }
         return books.contains { libraryMatch(book, deviceHash: $0.hash) == .converted } ? .converted : nil
     }
-    func visibleBooks(search: String, sort: AppModel.Sort = .recent) -> [ReaderBook] {
+    func visibleBooks(search: String, sort: AppModel.Sort = .recent, reversed: Bool = false) -> [ReaderBook] {
         let filtered = books.filter { search.isEmpty || ($0.title + " " + ($0.metadata?.authors.joined(separator: " ") ?? "")).localizedStandardContains(search) }
-        return ordered(filtered, at: folder, sort: sort)
+        let result = ordered(filtered, at: folder, sort: sort)
+        return reversed ? Array(result.reversed()) : result
     }
     func selectedBooks(search: String) -> [ReaderBook] {
         visibleBooks(search: search).filter { selectedIDs.contains($0.id) }
