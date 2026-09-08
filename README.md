@@ -14,7 +14,7 @@ Smallibre brings your ebook library and your connected reader into one place. Ad
 
 Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **5.9 MB**. No Calibre installation or additional runtime is needed.
 
-> **Early alpha:** useful today, still growing. EPUB-to-Kindle conversion and MTP connections are not available yet. Public builds are not yet Developer ID signed or notarized.
+> **Early alpha:** mounted-reader management is available today. A native EPUB-to-AZW3 prototype has been tested on Kindle, but conversion is not yet available through the app. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
 
 ## What you can do
 
@@ -23,6 +23,22 @@ Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom 
 - **Take a look inside.** Preview EPUB chapters before exporting a new copy.
 - **See what’s on your Kindle.** Browse a mounted reader and see exact matches with your Mac library.
 - **Manage device copies.** Download supported books, back up files, or delete selected copies after a verified local backup. Update title, author, and publisher on supported DRM-free MOBI/AZW3 device files.
+
+## Screenshots
+
+Browse your library and inspect book details.
+
+![Smallibre library showing four demo books and the selected book’s details](docs/screenshots/library.jpg)
+
+Preview EPUB chapters before exporting.
+
+![Smallibre EPUB preview showing the authored Small Hours sample](docs/screenshots/preview.jpg)
+
+Adjust book details, body typography, line spacing, and margins.
+
+![Smallibre details and typography editor](docs/screenshots/typography.jpg)
+
+*Captured from the macOS app using a disposable library of authored demo books.*
 
 ## Try it
 
@@ -66,14 +82,20 @@ Smallibre currently works with readers that appear as a mounted drive or folder 
 | --- | --- |
 | Reflowable EPUB | Import, preview, edit details and typography, export EPUB |
 | DRM-free MOBI / standalone AZW3 | Import and export; supported device copies allow metadata updates |
-| EPUB → Kindle format | Not yet—USB transfer needs an already compatible file |
+| EPUB → Kindle format | Native prototype exists; app transfers still require an existing MOBI/AZW3 file |
 | Mounted USB reader | Inventory and explicit transfer/management actions |
-| MTP reader | Not yet |
+| MTP reader | Developer read-only probe; no app connection or transfer support |
 | DRM-protected books / KFX | Limited device listing; no decryption, import, or editing |
 
 Library metadata edits are embedded in EPUB exports. MOBI/AZW3 exports from the library preserve original bytes; editing device metadata is a separate action. Smallibre does not automatically mirror or delete books when you connect a reader. Reader helpers run only for individual operations, without periodic polling. Unrelated volume mounts do not trigger scans. System sleep cancels reader work and invalidates device selections; after waking, refresh explicitly and check Backups & history before retrying an interrupted write. Cancellation does not prove a write failed, and interrupted writes are never automatically replayed.
 
 Fixed-layout EPUBs, scripted books, media overlays, embedded-font customization, and broad format conversion are outside the current scope. Large-library performance has not yet been established.
+
+## Conversion and MTP development status
+
+The native Swift EPUB-to-AZW3 prototype handles a deliberately limited EPUB subset. Authored test books were read on a **Kindle Paperwhite (11th generation), firmware 5.19.2**. Hardware testing identified and verified corrections for content layout and Library navigation; the writer now includes corrected fragment selectors and a stable document UUID. The exact final deterministic-UUID output still awaits its last on-device check. General EPUB normalization, broader compatibility, converted-artifact storage, and export/send integration remain unfinished. See the [conversion handoff](docs/handoffs/epub-to-kindle.md) and [hardware evidence](docs/architecture/azw3-format-evidence.md).
+
+MTP work includes protocol/transport foundations and a bounded read-only USB probe. Discovery integration and reliable MTP downloads, uploads, and deletion are not delivered. The tested Paperwhite used mounted USB storage, so those tests do not certify MTP. See the [MTP handoff](docs/handoffs/mtp-readers.md).
 
 ## Your files stay yours
 
@@ -86,8 +108,8 @@ Metadata search is optional: it sends the title and author query to Open Library
 ## What’s next
 
 - Broader book compatibility and more library-management tools.
-- Native MOBI-to-EPUB and EPUB-to-AZW3 conversion.
-- MTP reader connections and more hardware coverage.
+- Expand native EPUB-to-AZW3 support and integrate it into export/send; MOBI-to-EPUB remains future work.
+- Turn the MTP foundations into reliable reader connections and transfers, with hardware coverage.
 - Signed, notarized downloads and release automation.
 
 ## Help shape Smallibre
