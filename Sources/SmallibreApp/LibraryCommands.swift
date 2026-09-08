@@ -48,10 +48,8 @@ struct LibraryCommands: Commands {
                 .keyboardShortcut("r").disabled(selected?.metadata.format != "EPUB")
             Button("Edit Details…") { model?.editing = selected }
                 .keyboardShortcut("i").disabled(selected == nil)
-            Button("Export a Copy…") { if let selected { model?.export(selected) } }
-                .keyboardShortcut("e").disabled(selected == nil)
-            Button("Export Kindle AZW3…") { model?.kindleExportBook = selected }
-                .disabled(selected?.metadata.format != "EPUB" || model?.operation != nil)
+            Button("Export File…") { if let selected { model?.export(selected) } }
+                .keyboardShortcut("e").disabled(selected == nil || model?.operation != nil)
             Button("Show Original in Finder") { if let selected { model?.revealOriginal(selected) } }
                 .keyboardShortcut("f", modifiers: [.command, .shift]).disabled(selected == nil)
         }

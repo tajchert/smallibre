@@ -33,15 +33,18 @@ struct InspectorView: View {
                         }
                         Divider()
                         VStack(spacing: 9) {
-                            Button { model.reader.sendToDevice(book, model: model) } label: { Label("Send to device", systemImage: "externaldrive").frame(maxWidth: .infinity) }.controlSize(.large).disabled(model.operation != nil || model.reader.busy || !model.reader.libraryReady)
+                            HStack(spacing: 8) {
+                                Button { model.reader.sendToDevice(book, model: model) } label: { Label(model.reader.deviceMatch(book) == nil ? "Send to device" : "Already on device", systemImage: "externaldrive").frame(maxWidth: .infinity) }.controlSize(.large).disabled(model.operation != nil || model.reader.busy || !model.reader.libraryReady || model.reader.deviceMatch(book) != nil)
+                                Button { model.export(book) } label: {
+                                    Label("Export file…", systemImage: "square.and.arrow.up").labelStyle(.iconOnly)
+                                }.controlSize(.large).help("Export file…")
+                                    .accessibilityLabel("Export file")
+                                    .disabled(model.operation != nil)
+                            }
                             if model.reader.busy {
                                 ProgressView(model.reader.status ?? "Working with device…").font(.caption)
                                 Button("Stop") { model.reader.cancel() }
                             }
-                            if book.metadata.format == "EPUB" {
-                                Button("Export Kindle AZW3…") { model.kindleExportBook = book }.disabled(model.operation != nil)
-                            }
-                            Button { model.export(book) } label: { Label("Export a copy…", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity) }.controlSize(.large).disabled(model.operation != nil)
                         }
                         Label("Your original stays untouched", systemImage: "checkmark.shield").font(.system(size: 10)).foregroundStyle(.secondary).frame(maxWidth: .infinity)
                     }.padding(24)

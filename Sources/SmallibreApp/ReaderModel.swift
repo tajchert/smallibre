@@ -22,6 +22,7 @@ import SmallibreCore
     private var operationID = UUID()
     var localRoot: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Smallibre")
     var helper: URL = Bundle.main.executableURL!.deletingLastPathComponent().appendingPathComponent("SmallibreReaderHelper")
+    private var sentFiles: [URL: Date] = [:]
     var hashes: Set<String> { Set(books.map(\.hash).filter { !$0.isEmpty }) }
     enum LibraryMatch: Equatable { case original, converted }
     /// Display-only provenance association; device mutations still use scanned identities and hashes.
@@ -114,7 +115,7 @@ import SmallibreCore
             do {
                 let response = try await ReaderClient.perform(request, executable: helper)
                 guard operationID == token else { return }
-                books = response.books ?? []; rootIdentity = response.rootIdentity
+                books = ordered(response.books ?? [], at: folder); rootIdentity = response.rootIdentity
                 needsRefreshAfterSleep = false; interruptedBySleep = false
                 status = "\(books.count) books · refreshed just now"
             } catch is CancellationError {} catch {
@@ -175,7 +176,7 @@ import SmallibreCore
     /// One user action owns discovery, conversion and transfer. Only discovery failure
     /// opens the manual fallback; conversion/write failures must never replay a send.
     func sendToDevice(_ book: LibraryBook, model: AppModel) {
-        guard libraryReady, !sleeping, !busy, model.operation == nil, let store = model.store else { return }
+        guard libraryReady, !sleeping, !busy, model.operation == nil, deviceMatch(book) == nil, let store = model.store else { return }
         guard !needsRefreshAfterSleep else {
             model.error = "Refresh or reconnect the reader after sleep before sending. Check Backups & history before retrying an interrupted write."
             return
@@ -202,7 +203,9 @@ import SmallibreCore
                 guard operationID == token else { return }
                 guard let verifiedIdentity = response.rootIdentity else { throw BookError.invalid("Device identity unavailable") }
                 identity = verifiedIdentity
-                folder = destination; rootIdentity = identity; books = response.books ?? []
+                folder = destination; rootIdentity = identity; books = ordered(response.books ?? [], at: destination)
+                reloadHistory()
+                if deviceMatch(book) != nil { status = "Already on device"; return }
             } catch is CancellationError { return }
             catch {
                 guard operationID == token else { return }
@@ -229,6 +232,7 @@ import SmallibreCore
                     status = (status ?? "Sent and verified") + " · Conversion notes are saved in Backups & history."
                 }
                 model.status = status
+                await refreshAfterSend(result, destination: destination, connection: connection, identity: identity, token: token)
             } catch is CancellationError {} catch {
                 guard operationID == token else { return }
                 self.error = error.localizedDescription; model.error = error.localizedDescription
@@ -246,7 +250,8 @@ import SmallibreCore
         }
         localRoot = model.root
         let token = begin("Sending and verifying book…")
-        let request = ReaderRequest(action: artifact == nil ? "send" : "sendArtifact", root: destination, connection: UUID(), rootIdentity: nil, localRoot: localRoot, libraryBookID: book.id, preparedArtifact: artifact)
+        let connection = UUID()
+        let request = ReaderRequest(action: artifact == nil ? "send" : "sendArtifact", root: destination, connection: connection, rootIdentity: nil, localRoot: localRoot, libraryBookID: book.id, preparedArtifact: artifact)
         task = Task {
             defer { finish(token) }
             do {
@@ -256,7 +261,34 @@ import SmallibreCore
                 guard operationID == token else { return }
                 status = "Sent and verified · \(result.file?.lastPathComponent ?? book.metadata.title)"
                 model.status = status
+                await refreshAfterSend(result, destination: destination, connection: connection, identity: nil, token: token)
             } catch is CancellationError {} catch { if operationID == token { self.error = error.localizedDescription; model.error = error.localizedDescription } }
+        }
+    }
+    private func ordered(_ scanned: [ReaderBook], at root: URL) -> [ReaderBook] {
+        scanned.sorted {
+            let left = sentFiles[root.appendingPathComponent($0.relativePath).standardizedFileURL] ?? .distantPast
+            let right = sentFiles[root.appendingPathComponent($1.relativePath).standardizedFileURL] ?? .distantPast
+            if left != right { return left > right }
+            return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+        }
+    }
+    private func refreshAfterSend(_ result: ReaderResponse, destination: URL, connection: UUID, identity: String?, token: UUID) async {
+        guard operationID == token else { return }
+        if folder != destination || generation != connection { books = [] }
+        folder = destination; generation = connection; rootIdentity = identity
+        if let file = result.file { sentFiles[file.standardizedFileURL] = Date() }
+        reloadHistory()
+        do {
+            let response = try await ReaderClient.perform(
+                ReaderRequest(action: "scan", root: destination, connection: connection,
+                              rootIdentity: identity, localRoot: localRoot), executable: helper)
+            guard operationID == token else { return }
+            folder = destination; generation = connection; rootIdentity = response.rootIdentity
+            books = ordered(response.books ?? [], at: destination)
+        } catch is CancellationError {} catch {
+            guard operationID == token else { return }
+            self.error = "The book was sent and verified, but the device list could not refresh. Refresh the reader before sending again. " + error.localizedDescription
         }
     }
     func download(_ book: ReaderBook, model: AppModel, edit: Bool = false) { run("download", books: [book], model: model, edit: edit) }

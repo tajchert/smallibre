@@ -6,29 +6,36 @@ struct TransferView: View {
     let book: LibraryBook
     var localExport = false
     @State private var reader = "epub"
+    @State private var exportKindle = false
     @State private var folder: URL?
     @State private var artifact: PreparedBookArtifact?
     @State private var preparing = false
     @State private var preparationID = UUID()
     @State private var preparationError: String?
     @Environment(\.dismiss) private var dismiss
-    private var kindle: Bool { localExport || reader == "kindle" }
+    private var kindle: Bool { localExport ? exportKindle : reader == "kindle" }
     private var needsConversion: Bool { kindle && book.metadata.format == "EPUB" }
-    private var compatible: Bool { kindle ? ["EPUB", "MOBI", "AZW3"].contains(book.metadata.format) : book.metadata.format == "EPUB" }
+    private var compatible: Bool { localExport || (kindle ? ["EPUB", "MOBI", "AZW3"].contains(book.metadata.format) : book.metadata.format == "EPUB") }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
                 Image(systemName: localExport ? "square.and.arrow.up" : "externaldrive").font(.system(size: 32, weight: .light)).foregroundStyle(SmallibreTheme.accent)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(localExport ? "Export Kindle AZW3" : "Take a book with you").font(.system(size: 25, design: .serif))
+                    Text(localExport ? "Export file" : "Take a book with you").font(.system(size: 25, design: .serif))
                     Text(book.metadata.title).font(.system(size: 12)).foregroundStyle(.secondary)
                 }
             }
-            if !localExport {
+            if localExport {
+                Picker("File format", selection: $exportKindle) {
+                    Text(book.metadata.format).tag(false)
+                    if book.metadata.format == "EPUB" { Text("Kindle AZW3").tag(true) }
+                }
+                .disabled(model.operation != nil)
+            } else {
                 Picker("Reader", selection: $reader) { Text("EPUB reader / Kobo").tag("epub"); Text("Kindle").tag("kindle") }.pickerStyle(.segmented)
             }
             if compatible {
-                Text(localExport ? "Create a verified AZW3 copy with your saved changes. Your original and existing destination files are kept." : "Choose the books folder on your connected reader. Smallibre will copy and verify the file, keeping any existing books.").font(.callout).foregroundStyle(.secondary)
+                Text(localExport ? (book.metadata.format == "EPUB" ? "Export a copy with your saved changes. Your original and existing files are kept." : "Export the original file. Library metadata changes are not embedded. Existing files are kept.") : "Choose the books folder on your connected reader. Smallibre will copy and verify the file, keeping any existing books.").font(.callout).foregroundStyle(.secondary)
                 if needsConversion {
                     if preparing { ProgressView("Preparing Kindle copy…") }
                     if let preparationError { Label(preparationError, systemImage: "exclamationmark.triangle").foregroundStyle(.red).textSelection(.enabled) }
@@ -64,10 +71,14 @@ struct TransferView: View {
             HStack {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
-                Button(localExport ? "Export AZW3" : "Send to device", systemImage: "arrow.up.doc") {
+                Button(localExport ? "Export" : "Send to device", systemImage: "arrow.up.doc") {
                     guard let folder else { return }
                     if localExport {
-                        if let artifact { model.exportKindle(artifact, book: book, to: folder) }
+                        if needsConversion {
+                            if let artifact { model.exportKindle(artifact, book: book, to: folder) }
+                        } else {
+                            model.export(book, destination: folder)
+                        }
                     } else {
                         model.reader.send(book, destination: folder, model: model, artifact: needsConversion ? artifact : nil)
                         if model.reader.busy { dismiss() }

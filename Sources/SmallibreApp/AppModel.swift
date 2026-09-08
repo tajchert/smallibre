@@ -21,7 +21,7 @@ final class AppModel {
     var preview: PreviewContent?
     var editing: LibraryBook?
     var transferBook: LibraryBook?
-    var kindleExportBook: LibraryBook?
+    var exportBook: LibraryBook?
     var metadataBook: LibraryBook?
     let metadataLookup = MetadataLookup()
     var importTask: Task<Void, Never>?
@@ -125,18 +125,16 @@ final class AppModel {
     }
     func export(_ book: LibraryBook, destination: URL? = nil) {
         guard let store, operation == nil else { return }
-        let folder: URL
-        if let destination { folder = destination } else {
-            let panel = NSOpenPanel()
-            panel.title = "Export \(book.metadata.title)"
-            panel.message = book.metadata.format == "EPUB" ? "Exports an EPUB with your saved changes. Existing files are kept." : "Exports the original \(book.metadata.format) file. Library metadata changes are not embedded yet."
-            panel.prompt = "Export here"; panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.canCreateDirectories = true
-            guard panel.runModal() == .OK, let url = panel.url else { return }
-            folder = url
+        guard let folder = destination else {
+            error = nil
+            exportBook = book
+            return
         }
         if folder.path.hasPrefix("/Volumes/") {
             guard !reader.busy else { error = "Wait for the current device operation or cancel it first."; return }
-            reader.send(book, destination: folder, model: self); transferBook = nil; return
+            reader.send(book, destination: folder, model: self); transferBook = nil
+            if reader.busy { exportBook = nil }
+            return
         }
         operation = "Preparing \(book.metadata.title)…"
         Task {
@@ -146,7 +144,7 @@ final class AppModel {
                 let url = try await store.export(book.id, to: folder)
                 status = "Exported and verified · \(url.lastPathComponent)"
                 if let device = reader.folder, folder.path.hasPrefix(device.path) { reader.refresh() }
-                transferBook = nil
+                transferBook = nil; exportBook = nil
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             } catch { self.error = error.localizedDescription }
         }
@@ -157,7 +155,7 @@ final class AppModel {
         if folder.path.hasPrefix("/Volumes/") {
             guard !reader.busy else { error = "Wait for the current device operation or cancel it first."; return }
             reader.send(book, destination: folder, model: self, artifact: artifact)
-            if reader.busy { kindleExportBook = nil }
+            if reader.busy { exportBook = nil }
             return
         }
         operation = "Exporting Kindle copy…"
@@ -167,7 +165,7 @@ final class AppModel {
             do {
                 let url = try await store.exportKindleArtifact(artifact, to: folder)
                 status = "Exported and verified · \(url.lastPathComponent)"
-                kindleExportBook = nil
+                exportBook = nil
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             } catch { self.error = error.localizedDescription }
         }

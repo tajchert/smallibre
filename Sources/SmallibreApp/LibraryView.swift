@@ -23,7 +23,11 @@ struct LibraryView: View {
                 Button { model.chooseBooks() } label: { Label("Add books", systemImage: "plus") }.disabled(model.importing)
             }
             ToolbarItem(placement: .automatic) {
-                Menu { Picker("Sort by", selection: $model.sort) { ForEach(AppModel.Sort.allCases, id: \.self) { Text($0.rawValue).tag($0) } } }
+                Menu {
+                    Picker("Sort", selection: $model.sort) {
+                        ForEach(AppModel.Sort.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }.pickerStyle(.inline).labelsHidden()
+                }
                 label: { Label("Sort", systemImage: "arrow.up.arrow.down") }
             }
         }
@@ -41,7 +45,7 @@ struct LibraryView: View {
         .overlay { if dropTarget { RoundedRectangle(cornerRadius: 12).stroke(SmallibreTheme.accent, style: StrokeStyle(lineWidth: 3, dash: [8])).padding(8).allowsHitTesting(false) } }
         .sheet(item: $model.editing) { book in EditBookView(model: model, book: book) }
         .sheet(item: $model.preview) { PreviewView(content: $0) }
-        .sheet(item: $model.kindleExportBook) { book in TransferView(model: model, book: book, localExport: true) }
+        .sheet(item: $model.exportBook) { book in TransferView(model: model, book: book, localExport: true) }
         .sheet(item: $model.transferBook) { book in TransferView(model: model, book: book) }
         .sheet(item: $model.metadataBook) { book in MetadataView(model: model, book: book) }
         .alert("Couldn’t complete the operation", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
