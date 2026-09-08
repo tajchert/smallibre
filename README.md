@@ -12,9 +12,9 @@ macOS 14+ · Swift · GPL-3.0 · Early alpha
 
 Smallibre brings your ebook library and your connected reader into one place. Add books, tidy their details, adjust EPUB typography, and manage the books on a mounted Kindle—all through a native Mac interface.
 
-Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **6.6 MB**. No Calibre installation or additional runtime is needed.
+Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **6.7 MB**. No Calibre installation or additional runtime is needed.
 
-> **Early alpha:** mounted-reader management is available today. Version 0.2.0 adds native EPUB-to-AZW3 conversion, local Kindle export, and mounted-Kindle send. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
+> **Early alpha:** mounted-reader management is available today. Version 0.3.0 includes native EPUB-to-AZW3 conversion, font fallback, local Kindle export, and mounted-Kindle send. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
 
 ## What you can do
 
@@ -106,7 +106,7 @@ Fixed-layout EPUBs, scripted books, media overlays, embedded-font customization,
 
 Native conversion now prepares immutable AZW3 artifacts with source, settings, converter-version and output hashes. A send uses the exact reviewed artifact, creates a new device file, verifies a full readback and retains a backup and receipt. Corrupt cached files are rejected; interrupted writes are never retried automatically.
 
-The supported profile is deliberately bounded: reflowable EPUB 2/3, ordinary prose and lists, internal links, PNG/JPEG images, cover metadata, and basic inline/linked CSS. Nested navigation is flattened with a conversion note. DRM/encryption, embedded fonts, SVG/MathML, scripts, media overlays, remote resources and CSS resource imports are rejected. See the [known limitations and missing features](docs/epub-kindle-limitations.md) before relying on conversion for complex books.
+The supported profile is deliberately bounded: reflowable EPUB 2/3, ordinary prose and lists, internal links, PNG/JPEG images, cover metadata, and basic inline/linked CSS. Nested navigation is flattened with a conversion note. DRM, SVG/MathML, scripts, media overlays, remote resources and CSS imports are rejected. Version 0.3.0 adds font fallback for embedded and recognized obfuscated fonts, plus simple page-margin normalization. See the [known limitations and missing features](docs/epub-kindle-limitations.md) before relying on conversion for complex books.
 
 Earlier authored native books were read on a **Kindle Paperwhite (11th generation), firmware 5.19.2**, establishing the fragment-selector and document-UUID fixes. The expanded conversion profile still needs on-device rendering coverage; automated structure and transfer verification are not a readability certification. See the [conversion handoff](docs/handoffs/epub-to-kindle.md) and [hardware evidence](docs/architecture/azw3-format-evidence.md).
 

@@ -66,7 +66,7 @@ public struct EPUBBook: Sendable {
 }
 
 enum SafeXML {
-    static func document(_ data: Data) throws -> XMLDocument {
+    static func document(_ data: Data, preservingTextWhitespace: Bool = false) throws -> XMLDocument {
         guard data.count <= 8 * 1024 * 1024,
               let string = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .utf16),
               !string.localizedCaseInsensitiveContains("<!ENTITY") else { throw BookError.invalid("Unsupported XML encoding, entities or document size.") }
@@ -75,7 +75,83 @@ enum SafeXML {
         parser.shouldResolveExternalEntities = false
         parser.delegate = validator
         guard parser.parse(), !validator.exceeded else { throw BookError.invalid("The book contains invalid or excessively nested XML.") }
+        // Foundation retains whitespace-only runs in xmlString but omits them from
+        // children, joining words when callers traverse inline elements. Character
+        // references make those runs ordinary text nodes without changing their text.
+        if preservingTextWhitespace {
+            let encoding: String.Encoding = String(data: data, encoding: .utf8) != nil ? .utf8 : .utf16
+            guard let preserved = try preserveWhitespaceNodes(string).data(using: encoding), preserved.count <= 8 * 1024 * 1024 else {
+                throw BookError.invalid("Whitespace-preserving XML exceeds 8 MB.")
+            }
+            return try XMLDocument(data: preserved, options: [.nodePreserveAll, .nodeLoadExternalEntitiesNever])
+        }
         return try XMLDocument(data: data, options: [.nodePreserveAll, .nodeLoadExternalEntitiesNever])
+    }
+
+    private static func preserveWhitespaceNodes(_ xml: String) throws -> String {
+        let bytes = Array(xml.utf8)
+        var output: [UInt8] = [], index = 0, depth = 0
+        output.reserveCapacity(bytes.count)
+        func starts(_ token: String, at offset: Int) -> Bool {
+            bytes[offset...].starts(with: token.utf8)
+        }
+        while index < bytes.count {
+            try Task.checkCancellation()
+            let start = index
+            if bytes[index] == 60 {
+                let terminator: String?
+                if starts("<!--", at: index) { terminator = "-->" }
+                else if starts("<![CDATA[", at: index) { terminator = "]]>" }
+                else if starts("<?", at: index) { terminator = "?>" }
+                else { terminator = nil }
+                if let terminator {
+                    index += 2
+                    while index < bytes.count, !starts(terminator, at: index) {
+                        if index % 4096 == 0 { try Task.checkCancellation() }
+                        index += 1
+                    }
+                    index = min(bytes.count, index + terminator.utf8.count)
+                } else {
+                    var quote: UInt8?
+                    index += 1
+                    while index < bytes.count {
+                        if index % 4096 == 0 { try Task.checkCancellation() }
+                        let byte = bytes[index]; index += 1
+                        if let active = quote { if byte == active { quote = nil }; continue }
+                        if byte == 34 || byte == 39 { quote = byte }
+                        else if byte == 91, starts("<!DOCTYPE", at: start) {
+                            throw BookError.unsupported("Internal XML document type subsets cannot preserve ebook text safely.")
+                        }
+                        else if byte == 62 { break }
+                    }
+                }
+                if terminator == nil, start + 1 < bytes.count, bytes[start + 1] != 33 {
+                    if bytes[start + 1] == 47 { depth -= 1 }
+                    else if index >= 2, bytes[index - 2] != 47 { depth += 1 }
+                }
+                guard output.count + index - start <= 8 * 1024 * 1024 else { throw BookError.invalid("Whitespace-preserving XML exceeds 8 MB.") }
+                output.append(contentsOf: bytes[start..<index])
+            } else {
+                while index < bytes.count, bytes[index] != 60 {
+                    if index % 4096 == 0 { try Task.checkCancellation() }
+                    index += 1
+                }
+                let run = bytes[start..<index]
+                if depth > 0, run.allSatisfy({ [UInt8(32), 9, 10, 13].contains($0) }) {
+                    guard output.count + run.count * 6 <= 8 * 1024 * 1024 else { throw BookError.invalid("Whitespace-preserving XML exceeds 8 MB.") }
+                    var previous: UInt8?
+                    for (offset, byte) in run.enumerated() {
+                        if offset % 4096 == 0 { try Task.checkCancellation() }
+                        if byte != 10 || previous != 13 { output.append(contentsOf: "&#\(byte == 13 ? 10 : byte);".utf8) }
+                        previous = byte
+                    }
+                } else {
+                    guard output.count + run.count <= 8 * 1024 * 1024 else { throw BookError.invalid("Whitespace-preserving XML exceeds 8 MB.") }
+                    output.append(contentsOf: run)
+                }
+            }
+        }
+        return String(decoding: output, as: UTF8.self)
     }
 }
 

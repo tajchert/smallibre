@@ -1,6 +1,6 @@
 # Native EPUB to Kindle workflow
 
-Version 0.2.0 supports EPUB preparation, conversion-note review, local AZW3 export and verified transfer to a mounted reader. MTP is not part of this workflow.
+Version 0.3.0 supports EPUB preparation, conversion-note review, local AZW3 export and verified transfer to a mounted reader. MTP is not part of this workflow.
 
 ## User flow
 
@@ -16,7 +16,8 @@ For the detailed gap list and proposed priorities, see [known limitations and mi
 - Headings, prose, emphasis, lists, common semantic blocks, basic raster images and links to spine content. PNG/JPEG covers are retained as KF8 cover resources.
 - Basic UTF-8 linked stylesheets and inline CSS; saved EPUB typography is applied before conversion. CSS may render differently on Kindle. Nested tables of contents are flattened and disclosed in conversion notes.
 - At most 16 MB input archive, 512 unique spine chapters/navigation entries, 1 MB serialized content per chapter and 1 MB styles per chapter, with a 24 MB aggregate text/styles budget and a 32 MB final output limit. Images: at most 16 MB combined and 4 MB each, 8192 pixels per dimension and 16 million pixels. KF8 index records remain bounded to 65535 bytes and string tables below 60000 bytes; exceeding limits produces an error.
-- Reject DRM/encryption (including obfuscated embedded fonts), fixed layout, scripts, media overlays, embedded fonts, SVG/MathML, unsupported elements/attributes, remote images and external content links. CSS resource URLs/imports, at-rules, escapes and executable extensions are rejected. No remote content is fetched.
+- Version 0.3.0 omits declared custom fonts with a review warning, accepting only explicitly validated IDPF/Adobe font-only obfuscation. Custom CSS font families fall back to generic fonts; bold/italic declarations remain. Font definitions and simple publisher page margins are discarded with warnings. Font fallback was introduced in version 0.3.0.
+- Reject DRM/encrypted content, fixed layout, scripts, media overlays, SVG/MathML, unsupported elements/attributes, remote images and external content links. CSS URLs outside discarded font definitions, imports, other at-rules, font shorthand, escapes and executable extensions are rejected. No remote content is fetched.
 
 These bounds deliberately exclude some ordinary commercial EPUBs. Unsupported content produces an error rather than a partial book. This is not Calibre-equivalent conversion or a general AZW3 validator.
 
@@ -45,3 +46,9 @@ Earlier prototype hardware evidence is in [AZW3 format evidence](azw3-format-evi
 Development-only Calibre 9.14 independently decoded this output to EPUB; all source chapter headings and paragraphs were retained, and the decoded CSS retained serif/1.8 typography. Calibre is not a build or runtime dependency. The user subsequently confirmed that this exact test book works well on the Kindle. This confirms the sample workflow; it does not certify all supported EPUB features or other devices.
 
 Final integration checks: 115 tests, seven expected opt-in skips, zero failures; release bundle built and strict ad-hoc signature verification passed (approximately 6.6 MB). The isolated app’s local Export Kindle AZW3 flow completed and exported bytes with the same SHA-256 as the reviewed artifact and mounted-device readback.
+
+### Font fallback increment — 0.3.0
+
+Converter version 2 accepts recognized IDPF/Adobe font-only obfuscation when every declaration references an unambiguous, declared font resource. Fonts are omitted rather than decrypted or embedded. CSS font definitions and simple page-margin rules are removed with review warnings; custom families fall back to generic reader fonts. Unknown encryption, encrypted content, conflicting manifest paths and extra encryption structures remain rejected. Version 1 artifacts still validate, while new preparation uses the version 2 cache identity.
+
+Conversion and typography editing preserve whitespace-only nodes between inline elements. Authored regressions cover spaces, line endings, external DOCTYPE declarations, UTF-16, entity rejection and expanded XML bounds. Internal DTD subsets are unsupported in these paths. Local external-file validation also compared every non-empty paragraph/heading and distinct JPEG against an independent decoder; no personal EPUB or extracted text is stored in the repository. On-device rendering of the expanded font-fallback profile remains a manual check.

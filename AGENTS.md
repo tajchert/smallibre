@@ -61,6 +61,7 @@ Optional `--import /absolute/path/book.epub` imports into that library. Default 
 External tests are explicit opt-ins; read their source before enabling:
 
 - `SMALLIBRE_TEST_EPUB`: local EPUB round trip.
+- `SMALLIBRE_TEST_FONT_EPUB` and `SMALLIBRE_TEST_FONT_OUTPUT`: convert a local EPUB with font fallback to a new local AZW3 file; preserve the source and never select a device output path.
 - `SMALLIBRE_TEST_NATIVE_KINDLE` and `SMALLIBRE_TEST_NATIVE_KINDLE_LOCAL`: helper-only native AZW3 hardware workflow; use a new Mac-local evidence directory. Writes two authored copies, backs up/edits/deletes the second, and retains the first for physical reading.
 - `SMALLIBRE_TEST_READER_SCAN`: device inventory scan.
 - `SMALLIBRE_TEST_READER_BOOK` and `SMALLIBRE_TEST_READER_FOLDER`: mounted-reader transfer; writes a new copy.

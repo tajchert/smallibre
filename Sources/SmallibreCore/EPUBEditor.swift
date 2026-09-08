@@ -40,7 +40,7 @@ enum EPUBEditor {
             switch typography.font { case .original: font = ""; case .serif: font = "font-family: serif !important;"; case .sansSerif: font = "font-family: sans-serif !important;" }
             let css = "body { margin-left: \(margin)% !important; margin-right: \(margin)% !important; } body, p { line-height: \(line) !important; \(font) }"
             for path in epub.chapters {
-                let chapter = try SafeXML.document(epub.archive.data(named: path))
+                let chapter = try SafeXML.document(epub.archive.data(named: path), preservingTextWhitespace: true)
                 guard let head = try chapter.nodes(forXPath: "//*[local-name()='head']").first as? XMLElement else { throw BookError.invalid("A chapter has no document head.") }
                 for node in try head.nodes(forXPath: "./*[local-name()='style'][@id='smallibre-typography' or @id='nova-typography']") { node.detach() }
                 let prefix = head.prefix.flatMap { $0.isEmpty ? nil : $0 }

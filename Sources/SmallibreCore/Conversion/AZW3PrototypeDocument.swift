@@ -12,34 +12,50 @@ struct AZW3PrototypeDocument {
     let resources: [Resource]
     let navigation: [Navigation]
     let coverIndex: Int?
+    let warnings: [String]
 
     init(_ input: Data, production: Bool = false) throws {
         let chapterLimit = production ? 1024 * 1024 : 8192
         guard input.count <= 16 * 1024 * 1024 else { throw BookError.unsupported("Native AZW3 conversion accepts EPUBs up to 16 MB.") }
         let epub = try EPUBBook(data: input)
-        guard epub.allowsTypography, !epub.archive.names.contains("META-INF/encryption.xml"),
-              epub.chapters.count <= (production ? 512 : 64), Set(epub.chapters).count == epub.chapters.count else {
-            throw BookError.unsupported("Native AZW3 conversion requires unencrypted reflowable chapters without repeated spine items, within its chapter count limit.")
+        guard epub.allowsTypography else { throw BookError.unsupported("Fixed-layout, scripted books and media overlays cannot be converted to Kindle.") }
+        guard epub.chapters.count <= (production ? 512 : 64) else { throw BookError.unsupported("This EPUB exceeds the Kindle conversion chapter limit.") }
+        guard Set(epub.chapters).count == epub.chapters.count else { throw BookError.unsupported("Repeated spine chapters are unsupported in Kindle conversion.") }
+        if !production, epub.archive.names.contains("META-INF/encryption.xml") { throw BookError.unsupported("The hardware proof profile does not support font obfuscation.") }
+        var conversionWarnings: [String] = []
+        func normalizeCSS(_ css: String) throws -> String {
+            let result = try KindleFallbackCSS.normalize(css)
+            for warning in result.warnings where !conversionWarnings.contains(warning) { conversionWarnings.append(warning) }
+            return result.css
         }
         metadata = epub.metadata
         let package = try SafeXML.document(epub.archive.data(named: epub.packagePath))
         var manifest: [String: (path: String, mime: String)] = [:]
         var navigationPath: String?
+        var manifestPaths = Set<String>()
         for node in try package.nodes(forXPath: "//*[local-name()='manifest']/*[local-name()='item']") {
             guard let item = node as? XMLElement, let id = item.attribute(forName: "id")?.stringValue,
                   let href = item.attribute(forName: "href")?.stringValue, let mime = item.attribute(forName: "media-type")?.stringValue,
                   manifest[id] == nil else { throw BookError.invalid("Invalid or duplicate manifest item.") }
             let path = try EPUBBook.resolve(href, relativeTo: epub.packagePath)
-            guard (["application/xhtml+xml", "image/png", "image/jpeg"] + (production ? ["text/css", "application/x-dtbncx+xml"] : [])).contains(mime) else {
+            guard (["application/xhtml+xml", "image/png", "image/jpeg"] + (production ? ["text/css", "application/x-dtbncx+xml"] + Array(KindleFontResources.mediaTypes) : [])).contains(mime) else {
                 throw BookError.unsupported("Native AZW3 conversion cannot preserve \(mime). Only XHTML, CSS, NCX, PNG and JPEG resources are supported.")
             }
             guard epub.archive.names.contains(path) else { throw BookError.invalid("Missing prototype resource: \(path)") }
+            guard manifestPaths.insert(path).inserted else {
+                throw BookError.invalid("Multiple manifest entries reference the same resource path.")
+            }
             manifest[id] = (path, mime)
             if item.attribute(forName: "properties")?.stringValue?.split(separator: " ").contains("nav") == true {
+                guard !KindleFontResources.mediaTypes.contains(mime) else { throw BookError.invalid("A font cannot be the navigation document.") }
                 guard navigationPath == nil else { throw BookError.invalid("Multiple EPUB navigation documents.") }
                 navigationPath = path
             }
         }
+        let fontPaths = Set(manifest.values.filter { KindleFontResources.mediaTypes.contains($0.mime) }.map(\.path))
+        guard fontPaths.isDisjoint(with: Set(epub.chapters)) else { throw BookError.invalid("A font resource cannot be a reading-order chapter.") }
+        if production { try KindleFontResources.validateEncryption(in: epub, fontPaths: fontPaths) }
+        if !fontPaths.isEmpty { conversionWarnings.append("Custom fonts were replaced with Kindle reader fonts; bold and italic styling is retained.") }
         var usesNCX = false
         if navigationPath == nil, production,
            let spine = try package.nodes(forXPath: "//*[local-name()='spine']").first as? XMLElement,
@@ -86,7 +102,7 @@ struct AZW3PrototypeDocument {
         let supported: Set<String> = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "em", "strong", "b", "i", "u", "s", "blockquote", "ul", "ol", "li", "div", "span", "a", "img", "br", "hr", "sup", "sub", "pre", "code"]
         for (chapterNumber, path) in epub.chapters.enumerated() {
             try Task.checkCancellation()
-            let xml = try SafeXML.document(epub.archive.data(named: path))
+            let xml = try SafeXML.document(epub.archive.data(named: path), preservingTextWhitespace: production)
             guard let root = xml.rootElement(), root.localName == "html",
                   let body = try xml.nodes(forXPath: "/*[local-name()='html']/*[local-name()='body']").first as? XMLElement else {
                 throw BookError.invalid("Invalid prototype chapter: \(path)")
@@ -107,7 +123,7 @@ struct AZW3PrototypeDocument {
                 return try (element.attributes ?? []).sorted(by: { ($0.name ?? "") < ($1.name ?? "") }).map { attribute in
                     let key = attribute.name ?? "", value = attribute.stringValue ?? ""
                     guard ["id", "class", "style", "lang", "xml:lang", "dir", "epub:type"].contains(key) else { throw BookError.unsupported("Unsupported chapter container attribute: \(key)") }
-                    return " " + key + "=\"" + Self.escape(key == "style" ? try Self.safeCSS(value) : value) + "\""
+                    return " " + key + "=\"" + Self.escape(key == "style" ? try normalizeCSS(value) : value) + "\""
                 }.joined()
             }
             let rootAttributes = try containerAttributes(root), bodyAttributes = try containerAttributes(body)
@@ -115,14 +131,14 @@ struct AZW3PrototypeDocument {
             if production {
                 for node in headChildren {
                     guard let element = node as? XMLElement else { continue }
-                    if element.localName == "style" { styles += try Self.safeCSS(element.stringValue ?? "") + "\n" }
+                    if element.localName == "style" { styles += try normalizeCSS(element.stringValue ?? "") + "\n" }
                     if element.localName == "link" {
                         guard element.attribute(forName: "rel")?.stringValue == "stylesheet",
                               let href = element.attribute(forName: "href")?.stringValue else { throw BookError.unsupported("Unsupported chapter head link.") }
                         let cssPath = try EPUBBook.resolve(href, relativeTo: path)
                         guard manifest.values.contains(where: { $0.path == cssPath && $0.mime == "text/css" }),
                               let css = String(data: try epub.archive.data(named: cssPath), encoding: .utf8) else { throw BookError.invalid("Missing UTF-8 stylesheet.") }
-                        let normalized = try stylesheetCache[cssPath] ?? Self.safeCSS(css)
+                        let normalized = try stylesheetCache[cssPath] ?? normalizeCSS(css)
                         stylesheetCache[cssPath] = normalized
                         styles += normalized + "\n"
                     }
@@ -150,7 +166,7 @@ struct AZW3PrototypeDocument {
                         throw BookError.unsupported("Unsupported prototype attribute \(key) in \(path).")
                     }
                     var output = value
-                    if key == "style" { output = try Self.safeCSS(value) }
+                    if key == "style" { output = try normalizeCSS(value) }
                     if key == "href" {
                         guard name == "a" else { throw BookError.unsupported("Unsupported resource link.") }
                         let target = try Self.resolveTarget(value, from: path)
@@ -208,6 +224,7 @@ struct AZW3PrototypeDocument {
         chapters = parsed.enumerated().map { index, chapter in
             Chapter(path: chapter.path, title: chapter.title, body: String(decoding: bodies[index], as: UTF8.self), targets: chapter.targets, styles: chapter.styles, rootAttributes: chapter.rootAttributes, bodyAttributes: chapter.bodyAttributes)
         }
+        warnings = conversionWarnings
         let navXML = try SafeXML.document(epub.archive.data(named: navigationPath))
         if usesNCX {
             let points = try navXML.nodes(forXPath: "//*[local-name()='navMap']//*[local-name()='navPoint']")
@@ -238,34 +255,6 @@ struct AZW3PrototypeDocument {
             let (index, offset) = try destination(target.0, target.1)
             return Navigation(title: a.stringValue ?? "Chapter", chapter: index, offset: offset)
         }
-    }
-
-    /// Reject CSS features requiring resource loading or executable/vendor extensions. Escapes
-    /// are rejected and comments removed before validation to prevent token obfuscation.
-    private static func safeCSS(_ css: String) throws -> String {
-        guard css.utf8.count <= 1024 * 1024 else { throw BookError.unsupported("CSS exceeds 1 MB.") }
-        let bytes = Array(css.utf8)
-        var filtered: [UInt8] = [], index = 0
-        filtered.reserveCapacity(bytes.count)
-        while index < bytes.count {
-            if index % 4096 == 0 { try Task.checkCancellation() }
-            if index + 1 < bytes.count, bytes[index] == 47, bytes[index + 1] == 42 {
-                index += 2
-                while index + 1 < bytes.count && !(bytes[index] == 42 && bytes[index + 1] == 47) {
-                    if index % 4096 == 0 { try Task.checkCancellation() }
-                    index += 1
-                }
-                guard index + 1 < bytes.count else { throw BookError.invalid("Unterminated CSS comment.") }
-                index += 2
-            } else { filtered.append(bytes[index]); index += 1 }
-        }
-        let cleaned = String(decoding: filtered, as: UTF8.self)
-        let lower = cleaned.lowercased()
-        guard css.utf8.count <= 1024 * 1024,
-              !["url", "@", "expression", "javascript", "behavior", "-moz-binding", "\\", "/*", "<", ">"].contains(where: lower.contains) else {
-            throw BookError.unsupported("CSS imports, resource URLs, escapes and executable extensions are unsupported in AZW3 conversion.")
-        }
-        return cleaned
     }
 
     private static func resolveTarget(_ href: String, from path: String) throws -> (String, String) {

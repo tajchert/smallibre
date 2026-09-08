@@ -1,6 +1,6 @@
 # EPUB → Kindle: known limitations and missing features
 
-Last reviewed: 2026-09-08. Scope: the native EPUB-to-AZW3 converter and its export/send workflow in version 0.2.0. These limitations do not necessarily prevent importing or previewing the original EPUB.
+Last reviewed: 2026-09-08. Scope: the native EPUB-to-AZW3 converter and its export/send workflow in version 0.3.0. These limitations do not necessarily prevent importing or previewing the original EPUB.
 
 The authored workflow test works on Kindle Paperwhite (11th generation), firmware 5.19.2, as confirmed by the user. That establishes the tested sample, not compatibility with every EPUB or Kindle. Unsupported conversion content normally produces an error before transfer; originals remain unchanged.
 
@@ -8,25 +8,25 @@ The authored workflow test works on Kindle Paperwhite (11th generation), firmwar
 
 | Feature | Current behavior | Missing capability |
 | --- | --- | --- |
-| Embedded fonts | Font resources are rejected, including obfuscated fonts. An otherwise simple book can fail because its manifest includes fonts. | Safe fallback to reader fonts with a warning; optionally support permitted embedded fonts. |
+| Embedded fonts | Version 0.3.0 omits recognized font resources, including IDPF/Adobe-obfuscated fonts, with a warning. Generic fallback fonts retain supported bold/italic declarations. | Preserve embedded publisher typefaces; improve handling of font shorthand and unsupported font media types. |
 | SVG graphics and covers | SVG resources and inline SVG are unsupported. | Safe rasterization or a supported image fallback, including SVG cover wrappers. |
 | Tables | Table markup is not in the supported element set. | Basic tables, headers, captions, row/column spans and small-screen handling. |
 | Broader HTML support | Unsupported elements and attributes cause rejection. Examples include definition lists, ruby annotations and ordered-list `start`/`type` attributes. | Preserve additional common markup and distinguish harmless unsupported attributes from meaningful content loss. |
-| CSS | Basic inline and linked UTF-8 stylesheets work, but all at-rules, resource URLs and escapes are rejected. This includes `@media`, `@font-face`, `@import`, `@page` and background images. | A more complete CSS parser with explicit preservation, fallback and warning rules. |
+| CSS | Basic inline and linked UTF-8 stylesheets work, but `@font-face` blocks are discarded and simple `@page` margins defer to reader settings with warnings. Other at-rules (`@media`, `@import`), resource URLs outside discarded font definitions, font shorthand and escapes are rejected. | A more complete CSS parser with explicit preservation, fallback and warning rules. |
 | CSS matching and rendering | CSS is largely carried through; equivalent Kindle rendering is not guaranteed. The conservative token filter can reject harmless text or selectors, including selectors containing `>`. | Broader CSS compatibility fixtures and on-device layout checks. |
 | External hyperlinks | Links to websites and other external destinations are rejected. | Preserve safe external links without fetching remote content during conversion. |
 | Footnotes outside the spine | Internal links work only when their targets are in spine chapters. A separate notes document outside the spine is unsupported. | Include referenced local notes and preserve their navigation. Kindle popup-footnote behavior is not certified. |
 | Hierarchical navigation | Nested tables of contents are flattened, with a conversion note. | Preserve parent/child navigation hierarchy. |
 | Additional image types | Only PNG/JPEG resources are accepted. GIF, WebP and other image formats are unsupported. | Bounded conversion to supported raster formats. |
 
-The resource allowlist applies to manifest entries, not only visibly used content. An unused unsupported resource can therefore block conversion.
+The resource allowlist applies to manifest entries, not only visibly used content. Recognized fonts are omitted; an unused resource of another unsupported type can still block conversion.
 
 ## Structural restrictions
 
 - EPUB 3 navigation or EPUB 2 NCX referenced by the spine is required; there is no synthesized table-of-contents fallback.
 - Chapters must be unique in the spine; repeated spine entries are rejected.
 - Navigation must follow reading order.
-- Chapters must have the supported XHTML structure. Arbitrary malformed HTML is not repaired.
+- Chapters must have the supported XHTML structure. Arbitrary malformed HTML is not repaired. Internal DTD subsets are rejected during conversion and typography editing; ordinary external XHTML DOCTYPE declarations are accepted without loading external entities.
 - Missing resources, duplicate anchors and unresolved link targets are rejected.
 - Ambiguous or unsupported cover declarations are rejected. Kindle Library thumbnail display is not guaranteed by retaining the cover resource.
 
@@ -54,7 +54,7 @@ Index size can be exceeded before the chapter/navigation count limit, for exampl
 
 ## Deliberately outside the current scope
 
-- DRM removal or decryption; EPUB encryption declarations, including font obfuscation, are currently rejected.
+- DRM removal or decryption. Only recognized font-only obfuscation declarations referencing unambiguous manifest font resources can use fallback; encrypted text/images and unknown encryption remain rejected.
 - Fixed-layout books, scripted/interactively rendered books and media overlays.
 - Audio/video content and MathML.
 - KFX output, legacy MOBI output, hybrid MOBI/KF8 output and reverse AZW3/MOBI-to-EPUB conversion.
@@ -70,13 +70,13 @@ These are scope exclusions, not commitments to implement them.
 - **Compatibility coverage:** broader rights-cleared book corpus testing, other Kindle models/firmware and comprehensive rendering checks remain open.
 - **Performance:** larger-book memory/time benchmarks and release thresholds are not established.
 - **Validation scope:** the structural validator checks the native output profile. It is not a general third-party AZW3 validator or a substitute for hardware rendering checks.
-- **Release packaging:** version 0.2.0 targets Apple Silicon and macOS 14+. It is ad-hoc signed, not Developer ID signed or notarized; a universal build is not provided.
+- **Release packaging:** version 0.3.0 targets Apple Silicon and macOS 14+. It is ad-hoc signed, not Developer ID signed or notarized; a universal build is not provided.
 
 ## Suggested implementation priorities
 
 These are proposed priorities, not scheduled work.
 
-- [ ] Font fallback for ordinary reflowable books, with explicit conversion warnings.
+- [x] Font fallback for ordinary reflowable books, with explicit conversion warnings (available in 0.3.0).
 - [ ] SVG cover/image fallback without loading remote resources.
 - [ ] Basic tables and common HTML attributes.
 - [ ] More tolerant, structured CSS handling with documented degradation rules.

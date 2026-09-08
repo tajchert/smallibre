@@ -196,13 +196,17 @@ enum AZW3Validator {
         guard let uuid = String(data: identifier, encoding: .utf8), UUID(uuidString: uuid) != nil,
               let sourceString = String(data: source, encoding: .utf8), sourceString.hasPrefix("smallibre:") else { throw failure() }
         let sourceHash = try SHA256Digest(String(sourceString.dropFirst(10)))
-        var identityInput = Data([0x6b,0xa7,0xb8,0x11,0x9d,0xad,0x11,0xd1,0x80,0xb4,0x00,0xc0,0x4f,0xd4,0x30,0xc8])
-        identityInput.append(Data(("urn:smallibre:azw3:" + AZW3Converter.profile + ":" + AZW3Converter.version + ":sha256:" + sourceHash.value).utf8))
-        var identityBytes = Array(Insecure.SHA1.hash(data: identityInput).prefix(16))
-        identityBytes[6] = (identityBytes[6] & 15) | 80
-        identityBytes[8] = (identityBytes[8] & 63) | 128
-        let expectedIdentity = identityBytes.map { String(format: "%02x", $0) }.joined()
-        try require(uuid.replacingOccurrences(of: "-", with: "").lowercased() == expectedIdentity)
+        // Earlier immutable artifacts and receipts remain valid after converter upgrades.
+        let validIdentity = ["1", AZW3Converter.version].contains { version in
+            var identityInput = Data([0x6b,0xa7,0xb8,0x11,0x9d,0xad,0x11,0xd1,0x80,0xb4,0x00,0xc0,0x4f,0xd4,0x30,0xc8])
+            identityInput.append(Data(("urn:smallibre:azw3:" + AZW3Converter.profile + ":" + version + ":sha256:" + sourceHash.value).utf8))
+            var identityBytes = Array(Insecure.SHA1.hash(data: identityInput).prefix(16))
+            identityBytes[6] = (identityBytes[6] & 15) | 80
+            identityBytes[8] = (identityBytes[8] & 63) | 128
+            let expected = identityBytes.map { String(format: "%02x", $0) }.joined()
+            return uuid.replacingOccurrences(of: "-", with: "").lowercased() == expected
+        }
+        try require(validIdentity)
         try require(start.count == 4 && start.be32(0) == insertions[0] && resourceCount.count == 4 && resourceCount.be32(0) == resources)
         if exth[201] != nil { let cover = try field(201); try require(cover.count == 4 && cover.be32(0) < resources) }
         _ = try MOBIBook.inspect(data)

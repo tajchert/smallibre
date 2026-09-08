@@ -5,7 +5,9 @@ import CryptoKit
 /// One bounded fragment per chapter; text records split on UTF-8 boundaries.
 enum AZW3PrototypeWriter {
     static func convert(_ epub: Data, production: Bool = false) throws -> Data {
-        let document = try AZW3PrototypeDocument(epub, production: production)
+        try convert(epub, document: AZW3PrototypeDocument(epub, production: production), production: production)
+    }
+    static func convert(_ epub: Data, document: AZW3PrototypeDocument, production: Bool) throws -> Data {
         var text = Data(), starts: [Int] = [], skeletonLengths: [Int] = [], insertions: [Int] = []
         var fragmentLengths: [Int] = []
         for (index, chapter) in document.chapters.enumerated() {
