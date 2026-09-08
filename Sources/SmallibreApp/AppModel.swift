@@ -52,9 +52,29 @@ final class AppModel {
             reader.libraryReady = true; startupFailure = nil
         } catch { reader.libraryReady = false; startupFailure = error.localizedDescription }
     }
-    var selected: LibraryBook? { books.first { $0.id == selection } }
+    var selected: LibraryBook? {
+        if filter == "device" {
+            let selected = reader.selectedBooks(search: search)
+            guard selected.count == 1 else { return nil }
+            return reader.libraryBook(deviceHash: selected.first?.hash, library: books)
+        }
+        return books.first { $0.id == selection }
+    }
+    var commandsAvailable: Bool {
+        store != nil && editing == nil && preview == nil &&
+        transferBook == nil && exportBook == nil && metadataBook == nil && error == nil
+    }
+    func exportUsesReader(_ destination: URL) -> Bool {
+        guard let folder = reader.folder else { return false }
+        let root = folder.standardizedFileURL.path
+        let path = destination.standardizedFileURL.path
+        return path == root || path.hasPrefix(root + "/")
+    }
+    func exportNeedsHelper(_ destination: URL) -> Bool {
+        destination.standardizedFileURL.path.hasPrefix("/Volumes/") || exportUsesReader(destination)
+    }
     var commandSelection: LibraryBook? {
-        guard filter != "device", let selected, visibleBooks.contains(where: { $0.id == selected.id }) else { return nil }
+        guard commandsAvailable, filter != "device", let selected, visibleBooks.contains(where: { $0.id == selected.id }) else { return nil }
         return selected
     }
     func prepareSearch(global: Bool) {
@@ -130,9 +150,9 @@ final class AppModel {
             exportBook = book
             return
         }
-        if folder.path.hasPrefix("/Volumes/") {
+        if exportNeedsHelper(folder) {
             guard !reader.busy else { error = "Wait for the current device operation or cancel it first."; return }
-            reader.send(book, destination: folder, model: self); transferBook = nil
+            reader.send(book, destination: folder, model: self, updateInventory: exportUsesReader(folder)); transferBook = nil
             if reader.busy { exportBook = nil }
             return
         }
@@ -143,7 +163,6 @@ final class AppModel {
             do {
                 let url = try await store.export(book.id, to: folder)
                 status = "Exported and verified · \(url.lastPathComponent)"
-                if let device = reader.folder, folder.path.hasPrefix(device.path) { reader.refresh() }
                 transferBook = nil; exportBook = nil
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             } catch { self.error = error.localizedDescription }
@@ -152,9 +171,9 @@ final class AppModel {
     func exportKindle(_ artifact: PreparedBookArtifact, book: LibraryBook, to folder: URL) {
         guard let store, operation == nil else { return }
         error = nil
-        if folder.path.hasPrefix("/Volumes/") {
+        if exportNeedsHelper(folder) {
             guard !reader.busy else { error = "Wait for the current device operation or cancel it first."; return }
-            reader.send(book, destination: folder, model: self, artifact: artifact)
+            reader.send(book, destination: folder, model: self, artifact: artifact, updateInventory: exportUsesReader(folder))
             if reader.busy { exportBook = nil }
             return
         }

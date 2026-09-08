@@ -14,7 +14,7 @@ Smallibre brings your ebook library and your connected reader into one place. Ad
 
 Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **6.7 MB**. No Calibre installation or additional runtime is needed.
 
-> **Early alpha:** mounted-reader management is available today. Version 0.3.3 includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
+> **Early alpha:** mounted-reader management is available today. Version 0.3.4 includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
 
 ## What you can do
 

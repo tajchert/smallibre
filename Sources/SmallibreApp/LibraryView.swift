@@ -32,7 +32,7 @@ struct LibraryView: View {
             }
         }
         .searchable(text: $model.search, isPresented: $searchPresented, placement: .toolbar, prompt: "Search books or authors")
-        .focusedSceneValue(\.libraryCommands, commandsAvailable ? LibraryCommandContext(model: model) { global in
+        .focusedSceneValue(\.libraryCommands, model.commandsAvailable ? LibraryCommandContext(model: model) { global in
             model.prepareSearch(global: global)
             searchPresented = true
         } : nil)
@@ -52,11 +52,6 @@ struct LibraryView: View {
             Button("OK") { model.error = nil }
         } message: { Text(model.error ?? "") }
         .frame(minWidth: 920, minHeight: 600)
-    }
-
-    private var commandsAvailable: Bool {
-        model.store != nil && model.editing == nil && model.preview == nil &&
-        model.transferBook == nil && model.metadataBook == nil && model.error == nil
     }
 
     private var sidebar: some View {

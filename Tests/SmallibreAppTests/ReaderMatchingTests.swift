@@ -20,12 +20,18 @@ import XCTest
         var record = ReaderTransferRecord(artifact: artifact, destination: destination)
         var receipt = ReaderReceipt(id: record.id, operation: "sendArtifact", source: "book.azw3", sourceHash: outputHash.value,
             backup: root.appendingPathComponent("backup.azw3"), date: Date(), state: "intent", transfer: record)
+        model.books = [book]; model.filter = "device"
+        model.reader.books = [ReaderBook(connection: model.reader.generation, relativePath: "book.azw3",
+                                         metadata: book.metadata, hash: outputHash.value, byteCount: 24, issue: nil)]
+        model.reader.selectedIDs = ["book.azw3"]
         model.reader.receipts = [receipt]
+        XCTAssertNil(model.selected)
         XCTAssertNil(model.reader.libraryMatch(book, deviceHash: outputHash.value))
         XCTAssertNil(model.reader.libraryBook(deviceHash: outputHash.value, library: [book]))
         try record.uploaded(.init(destination: destination, locator: .mounted(relativePath: "book.azw3")))
         record.verified(); receipt.transfer = record; receipt.state = "verified"
         model.reader.receipts = [receipt]
+        XCTAssertEqual(model.selected?.id, book.id)
         XCTAssertEqual(model.reader.libraryMatch(book, deviceHash: outputHash.value), .converted)
         XCTAssertEqual(model.reader.libraryBook(deviceHash: outputHash.value, library: [book])?.id, book.id)
         XCTAssertEqual(model.reader.libraryBook(deviceHash: book.hash, library: [book])?.id, book.id)

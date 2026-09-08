@@ -5,14 +5,11 @@ import SmallibreCore
 struct ReaderView: View {
     @Bindable var reader: ReaderModel
     @Bindable var model: AppModel
-    @State private var selected: Set<String> = []
     @State private var deletion: [ReaderBook] = []
     @State private var editing: ReaderBook?
     @State private var history = false
-    private var selection: [ReaderBook] { reader.books.filter { selected.contains($0.id) } }
-    private var filtered: [ReaderBook] {
-        reader.books.filter { model.search.isEmpty || ($0.title + " " + ($0.metadata?.authors.joined(separator: " ") ?? "")).localizedStandardContains(model.search) }
-    }
+    private var selection: [ReaderBook] { reader.selectedBooks(search: model.search) }
+    private var filtered: [ReaderBook] { reader.visibleBooks(search: model.search) }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Your Kindle").font(.system(size: 30, design: .serif))
@@ -30,7 +27,7 @@ struct ReaderView: View {
             if reader.folder == nil {
                 ContentUnavailableView("No mounted Kindle", systemImage: "externaldrive", description: Text("Connect a Kindle that appears in Finder, or choose its documents folder. MTP is not supported yet."))
             } else {
-                List(filtered, selection: $selected) { item in
+                List(filtered, selection: $reader.selectedIDs) { item in
                     HStack {
                         Image(systemName: "book.closed").foregroundStyle(SmallibreTheme.accent)
                         VStack(alignment: .leading, spacing: 4) {
@@ -66,10 +63,9 @@ struct ReaderView: View {
             if reader.busy { ProgressView(value: reader.progress).progressViewStyle(.linear) }
             Text(reader.status ?? "Matches use identical file contents; Refresh reuses unchanged files, Recheck reads every file.").font(.caption).foregroundStyle(.secondary).lineLimit(3)
         }.padding(24).background(SmallibreTheme.canvas)
-        .onChange(of: reader.generation) { _, _ in deletion = []; selected = []; editing = nil }
-        .onChange(of: selected) { _, _ in
-            let hash = selection.count == 1 ? selection.first?.hash : nil
-            model.selection = reader.libraryBook(deviceHash: hash, library: model.books)?.id
+        .onChange(of: reader.generation) { _, _ in deletion = []; editing = nil }
+        .onChange(of: selection.map { $0.id + ":" + $0.hash }) { _, _ in
+            deletion = []; editing = nil
         }
         .task { reader.localRoot = model.root; reader.reloadHistory(); if reader.folder == nil { reader.discover() } }
         .confirmationDialog("Back up and delete \(deletion.count) device copies?", isPresented: Binding(get: { !deletion.isEmpty }, set: { if !$0 { deletion = [] } }), titleVisibility: .visible) {

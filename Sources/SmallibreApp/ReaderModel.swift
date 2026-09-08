@@ -5,8 +5,13 @@ import SmallibreCore
 
 @MainActor @Observable final class ReaderModel {
     var libraryReady = false
-    var books: [ReaderBook] = []
-    var generation = UUID()
+    var selectedIDs: Set<String> = []
+    var books: [ReaderBook] = [] {
+        didSet { selectedIDs.formIntersection(Set(books.map(\.id))) }
+    }
+    var generation = UUID() {
+        didSet { if generation != oldValue { selectedIDs = [] } }
+    }
     var folder: URL?
     var busy = false
     var error: String?
@@ -40,6 +45,12 @@ import SmallibreCore
     func deviceMatch(_ book: LibraryBook) -> LibraryMatch? {
         if hashes.contains(book.hash) { return .original }
         return books.contains { libraryMatch(book, deviceHash: $0.hash) == .converted } ? .converted : nil
+    }
+    func visibleBooks(search: String) -> [ReaderBook] {
+        books.filter { search.isEmpty || ($0.title + " " + ($0.metadata?.authors.joined(separator: " ") ?? "")).localizedStandardContains(search) }
+    }
+    func selectedBooks(search: String) -> [ReaderBook] {
+        visibleBooks(search: search).filter { selectedIDs.contains($0.id) }
     }
     func libraryBook(deviceHash: String?, library: [LibraryBook]) -> LibraryBook? {
         guard let deviceHash, !deviceHash.isEmpty else { return nil }
@@ -136,7 +147,9 @@ import SmallibreCore
         reloadHistory()
     }
     func disconnected(_ url: URL) {
-        guard let folder, folder.path.hasPrefix(url.path + "/") else { return }
+        guard let folder else { return }
+        let root = url.standardizedFileURL.path, selected = folder.standardizedFileURL.path
+        guard selected == root || selected.hasPrefix(root + "/") else { return }
         cancel(); generation = UUID(); books = []; self.folder = nil; rootIdentity = nil; status = "Kindle disconnected"
     }
     private func begin(_ message: String) -> UUID {
@@ -244,7 +257,7 @@ import SmallibreCore
             }
         }
     }
-    func send(_ book: LibraryBook, destination: URL, model: AppModel, artifact: PreparedBookArtifact? = nil) {
+    func send(_ book: LibraryBook, destination: URL, model: AppModel, artifact: PreparedBookArtifact? = nil, updateInventory: Bool = true) {
         guard libraryReady, !sleeping, !busy else { return }
         guard !needsRefreshAfterSleep else {
             error = "Refresh or reconnect the reader after sleep before sending. Check Backups & history before retrying an interrupted write."
@@ -266,7 +279,9 @@ import SmallibreCore
                 guard operationID == token else { return }
                 status = "Sent and verified · \(result.file?.lastPathComponent ?? book.metadata.title)"
                 model.status = status
-                await refreshAfterSend(result, destination: destination, connection: connection, identity: nil, token: token)
+                if updateInventory {
+                    await refreshAfterSend(result, destination: destination, connection: connection, identity: nil, token: token)
+                }
             } catch is CancellationError {} catch { if operationID == token { self.error = error.localizedDescription; model.error = error.localizedDescription } }
         }
     }
