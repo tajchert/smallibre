@@ -5,9 +5,7 @@ enum EPUBEditor {
         guard !typography.enabled || epub.allowsTypography else { throw BookError.unsupported("Typography changes are available for reflowable books without scripts or media overlays.") }
         guard typography.lineHeight.isFinite, (1...2.4).contains(typography.lineHeight), typography.marginPercent.isFinite, (0...12).contains(typography.marginPercent) else { throw BookError.invalid("Typography settings are outside the supported range.") }
         var changes: [String: Data] = [:]
-        var embeddedMetadata = epub.metadata; embeddedMetadata.cover = nil
-        var requestedMetadata = metadata; requestedMetadata.cover = nil
-        if requestedMetadata != embeddedMetadata {
+        if metadata.writableFields != epub.metadata.writableFields {
             let package = try SafeXML.document(epub.archive.data(named: epub.packagePath))
             guard let element = try package.nodes(forXPath: "//*[local-name()='metadata']").first as? XMLElement else { throw BookError.invalid("Missing book metadata.") }
             if element.resolveNamespace(forName: "dc") == nil { element.addNamespace(XMLNode.namespace(withName: "dc", stringValue: "http://purl.org/dc/elements/1.1/") as! XMLNode) }

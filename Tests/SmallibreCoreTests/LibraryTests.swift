@@ -37,6 +37,23 @@ final class LibraryTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(try Data(contentsOf: original), sourceBytes)
         XCTAssertEqual(try Data(contentsOf: fixture()), sourceBytes)
     }
+    /// A read-only metadata field must never decide that a book was edited. A record saved before
+    /// the field existed decodes without it, so its value differs from the file's; the book still
+    /// has to export its original bytes.
+    func testReadOnlyMetadataDifferenceKeepsOriginalBytes() async throws {
+        let folder = try root(), store = try LibraryStore(root: folder)
+        let sourceBytes = try Data(contentsOf: fixture())
+        let book = try await store.importBook(from: fixture()).book
+        var prepared = try await store.preparedData(for: book.id)
+        XCTAssertEqual(prepared, sourceBytes)
+        // Rewrite the stored record behind the store, the only way this mismatch arises in practice.
+        let database = try Database(url: folder.appendingPathComponent("library.sqlite"))
+        var stored = try XCTUnwrap(database.book(column: "id", value: book.id.uuidString))
+        stored.metadata.published = "1999-01-01"
+        try database.save(stored, insert: false)
+        prepared = try await store.preparedData(for: book.id)
+        XCTAssertEqual(prepared, sourceBytes)
+    }
     func testExportAvoidsOverwritingExistingFiles() async throws {
         let folder = try root(), destination = try root(), store = try LibraryStore(root: folder)
         let book = try await store.importBook(from: fixture()).book

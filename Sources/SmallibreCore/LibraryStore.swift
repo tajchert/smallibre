@@ -88,8 +88,7 @@ public actor LibraryStore {
         guard Self.digest(original) == book.hash else { throw BookError.invalid("The original file failed its integrity check. Restore it from a backup.") }
         guard book.metadata.format == "EPUB" else { return original }
         let epub = try EPUBBook(data: original)
-        var originalMetadata = epub.metadata; originalMetadata.cover = nil
-        if originalMetadata == book.metadata && !book.typography.enabled { return original }
+        if epub.metadata.writableFields == book.metadata.writableFields && !book.typography.enabled { return original }
         return try EPUBEditor.prepare(epub, metadata: book.metadata, typography: book.typography)
     }
     public func export(_ id: UUID, to folder: URL) throws -> URL {

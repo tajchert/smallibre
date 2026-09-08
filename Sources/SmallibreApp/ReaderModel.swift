@@ -13,6 +13,8 @@ import SmallibreCore
         didSet { if generation != oldValue { selectedIDs = [] } }
     }
     var folder: URL?
+    /// Display-only device storage from the last helper scan. Cleared whenever the inventory is.
+    var capacity: ReaderCapacity?
     var busy = false
     var error: String?
     var status: String?
@@ -109,7 +111,7 @@ import SmallibreCore
         interruptedBySleep = interruptedBySleep || busy
         needsRefreshAfterSleep = needsRefreshAfterSleep || busy || folder != nil
         task?.cancel(); task = nil; operationID = UUID(); busy = false
-        generation = UUID(); rootIdentity = nil; books = []
+        generation = UUID(); rootIdentity = nil; books = []; capacity = nil
         if needsRefreshAfterSleep { status = "Reader paused for system sleep. Refresh after waking." }
     }
     func systemDidWake() {
@@ -122,7 +124,7 @@ import SmallibreCore
     }
     func connect(_ url: URL) {
         guard libraryReady, !sleeping else { return }
-        cancel(); generation = UUID(); folder = url; rootIdentity = nil; books = []; refresh()
+        cancel(); generation = UUID(); folder = url; rootIdentity = nil; books = []; capacity = nil; refresh()
     }
     func refresh(full: Bool = false) {
         guard libraryReady, !sleeping, !busy, let folder else { return }
@@ -133,12 +135,12 @@ import SmallibreCore
             do {
                 let response = try await ReaderClient.perform(request, executable: helper)
                 guard operationID == token else { return }
-                books = ordered(response.books ?? [], at: folder); rootIdentity = response.rootIdentity
+                books = ordered(response.books ?? [], at: folder); rootIdentity = response.rootIdentity; capacity = response.capacity
                 needsRefreshAfterSleep = false; interruptedBySleep = false
                 status = "\(books.count) books · refreshed just now"
             } catch is CancellationError {} catch {
                 guard operationID == token else { return }
-                books = []; rootIdentity = nil; generation = UUID(); self.error = error.localizedDescription
+                books = []; rootIdentity = nil; capacity = nil; generation = UUID(); self.error = error.localizedDescription
                 status = "Scan stopped. Reconnect if needed, then Refresh."
             }
         }
@@ -152,7 +154,7 @@ import SmallibreCore
         guard let folder else { return }
         let root = url.standardizedFileURL.path, selected = folder.standardizedFileURL.path
         guard selected == root || selected.hasPrefix(root + "/") else { return }
-        cancel(); generation = UUID(); books = []; self.folder = nil; rootIdentity = nil; status = "Kindle disconnected"
+        cancel(); generation = UUID(); books = []; capacity = nil; self.folder = nil; rootIdentity = nil; status = "Kindle disconnected"
     }
     private func begin(_ message: String) -> UUID {
         let token = UUID(); operationID = token; busy = true; progress = 0; status = message; error = nil; return token
@@ -223,7 +225,7 @@ import SmallibreCore
                 guard operationID == token else { return }
                 guard let verifiedIdentity = response.rootIdentity else { throw BookError.invalid("Device identity unavailable") }
                 identity = verifiedIdentity
-                folder = destination; rootIdentity = identity; books = ordered(response.books ?? [], at: destination)
+                folder = destination; rootIdentity = identity; books = ordered(response.books ?? [], at: destination); capacity = response.capacity
                 reloadHistory()
                 if deviceMatch(book) != nil { status = "Already on device"; return }
             } catch is CancellationError { return }
@@ -303,6 +305,10 @@ import SmallibreCore
                 if left.isEmpty != right.isEmpty { return !left.isEmpty }
                 let comparison = left.localizedStandardCompare(right)
                 if comparison != .orderedSame { return comparison == .orderedAscending }
+            case .format:
+                let left = $0.formatLabel, right = $1.formatLabel
+                let comparison = left.localizedStandardCompare(right)
+                if comparison != .orderedSame { return comparison == .orderedAscending }
             case .title: break
             }
             let comparison = $0.title.localizedStandardCompare($1.title)
@@ -320,7 +326,7 @@ import SmallibreCore
                 ReaderRequest(action: "scan", root: destination, connection: connection,
                               rootIdentity: identity, localRoot: localRoot), executable: helper)
             guard operationID == token else { return }
-            folder = destination; generation = connection; rootIdentity = response.rootIdentity
+            folder = destination; generation = connection; rootIdentity = response.rootIdentity; capacity = response.capacity
             books = ordered(response.books ?? [], at: destination)
         } catch is CancellationError {} catch {
             guard operationID == token else { return }

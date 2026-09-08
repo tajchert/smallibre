@@ -9,20 +9,40 @@ struct PreviewView: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) { Text(content.title).font(.system(size: 17, design: .serif)); Text("Reading preview").font(.caption).foregroundStyle(.secondary) }
-                Spacer()
-                Button { chapter = max(0, chapter - 1) } label: { Image(systemName: "chevron.left") }.disabled(chapter == 0).help("Previous chapter")
-                Picker("Chapter", selection: $chapter) { ForEach(content.epub.chapters.indices, id: \.self) { Text("Chapter \($0 + 1)").tag($0) } }.labelsHidden().frame(width: 140)
-                Button { chapter = min(content.epub.chapters.count - 1, chapter + 1) } label: { Image(systemName: "chevron.right") }.disabled(chapter == content.epub.chapters.count - 1).help("Next chapter")
-                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction).padding(.leading, 14)
-            }.padding(18)
-            Divider()
-            if let previewError { ContentUnavailableView("Preview unavailable", systemImage: "book.closed", description: Text(previewError)).frame(maxHeight: .infinity) }
-            else { BookWebView(epub: content.epub, chapter: chapter, error: $previewError) }
-            Divider()
-            Text("Your reader’s settings may change the final appearance.").font(.system(size: 10)).foregroundStyle(.secondary).padding(10)
-        }.frame(width: 830, height: 680).background(SmallibreTheme.canvas)
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(content.title).font(.system(size: 20, weight: .bold)).tracking(-0.4).lineLimit(1)
+                    Text("Reading preview").font(.system(size: 13)).foregroundStyle(SmallibreTheme.text2)
+                }
+                Spacer(minLength: 12)
+                Button { chapter = max(0, chapter - 1) } label: { Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold)) }
+                    .buttonStyle(.control(height: 26, fontSize: 12)).disabled(chapter == 0)
+                    .help("Previous chapter").accessibilityLabel("Previous chapter")
+                Menu {
+                    Picker("Chapter", selection: $chapter) { ForEach(content.epub.chapters.indices, id: \.self) { Text("Chapter \($0 + 1)").tag($0) } }.labelsHidden().pickerStyle(.inline)
+                } label: {
+                    HStack(spacing: 5) { Text("Chapter \(chapter + 1)"); Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)) }
+                }
+                .menuStyle(.button).buttonStyle(.control(height: 26, fontSize: 12, fillsWidth: true)).menuIndicator(.hidden)
+                .frame(width: 130).help("Choose a chapter")
+                Button { chapter = min(content.epub.chapters.count - 1, chapter + 1) } label: { Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)) }
+                    .buttonStyle(.control(height: 26, fontSize: 12)).disabled(chapter == content.epub.chapters.count - 1)
+                    .help("Next chapter").accessibilityLabel("Next chapter")
+            }.padding(.horizontal, 20).padding(.vertical, 14).background(SmallibreTheme.content)
+            Hairline()
+            if let previewError {
+                ContentUnavailableView("Preview unavailable", systemImage: "book.closed", description: Text(previewError))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity).background(SmallibreTheme.content)
+            } else {
+                BookWebView(epub: content.epub, chapter: chapter, error: $previewError)
+            }
+            Hairline()
+            HStack(spacing: 8) {
+                Label("Your reader’s settings may change the final appearance.", systemImage: Glyph.assurance)
+                    .font(.system(size: 12)).foregroundStyle(SmallibreTheme.text3).frame(maxWidth: .infinity, alignment: .leading)
+                Button("Done") { dismiss() }.buttonStyle(.accentAction).keyboardShortcut(.cancelAction)
+            }.padding(.horizontal, 20).padding(.vertical, 14).background(SmallibreTheme.inspector)
+        }.frame(width: 830, height: 680).background(SmallibreTheme.content).foregroundStyle(SmallibreTheme.text).tint(SmallibreTheme.accent)
     }
 }
 

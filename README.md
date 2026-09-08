@@ -18,18 +18,18 @@ Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom 
 
 ## What you can do
 
-- **Build your bookshelf.** Import EPUB, MOBI, and standalone AZW3 books. Browse covers, search, and sort your library. Identical files are detected automatically.
-- **Make books yours.** Edit book details, review suggestions from Open Library, and adjust fonts, spacing, and margins in reflowable EPUBs.
-- **Send EPUBs to Kindle.** Click **Send to device** to detect a mounted Kindle, convert the EPUB, and send a verified copy. After sending, the device list and copy badge update automatically; the default recent sort shows newly sent books first, and matching books show a disabled **Already on device** button. Folder selection is only needed if automatic detection fails; the fallback also supports EPUB readers. Use the export icon beside **Send to device** to choose a file format and destination folder. EPUB books can be exported as EPUB or Kindle AZW3; MOBI/AZW3 books retain their original format. Supported EPUBs keep saved metadata and typography changes.
+- **Build your bookshelf.** Import EPUB, MOBI, and standalone AZW3 books. Browse covers, search, and sort your library by title, author, recently added, or format. Identical files are detected automatically. The window follows your Mac's appearance, and the button at the foot of the sidebar switches between light and dark; right-click it to go back to following the system.
+- **Make books yours.** Edit book details, review suggestions from Open Library, and adjust fonts, spacing, and margins in reflowable EPUBs. The inspector shows language, publisher, the publication date the book declares, when you added it, and its original filename.
+- **Send EPUBs to Kindle.** Click **Send to Kindle** to detect a mounted Kindle, convert the EPUB, and send a verified copy. After sending, the device list and the **· ON KINDLE** badge update automatically; the default recent sort shows newly sent books first, and books already on the device show a disabled **On Kindle · Send Again** button. Folder selection is only needed if automatic detection fails; the fallback also supports EPUB readers. Use **Export File…** (⌘E, or the book's context menu) to choose a file format and destination folder. EPUB books can be exported as EPUB or Kindle AZW3; MOBI/AZW3 books retain their original format. Supported EPUBs keep saved metadata and typography changes.
 - **Take a look inside.** Preview EPUB chapters before exporting a new copy.
-- **See what’s on your Kindle.** Browse a mounted reader, see matches with your Mac library, and inspect device-only books. The toolbar sorts device books by title, author, or recently added (file creation date, falling back to modification date). When metadata is unavailable, including for KFX files, the details panel shows the filename, format, size, and device path.
+- **See what’s on your Kindle.** Browse a mounted reader, see matches with your Mac library, and inspect device-only books. The Kindle view shows the reader's folder and, when the volume reports it, how much of its storage is used. The toolbar sorts device books by title, author, format, or recently added (file creation date, falling back to modification date). When metadata is unavailable, including for KFX files, the details panel shows the filename, format, size, and device path.
 - **Manage device copies.** Download supported books, back up files, or delete selected copies after a verified local backup. Update title, author, and publisher on supported DRM-free MOBI/AZW3 device files.
 
 ## Screenshots
 
 Browse your library and inspect book details.
 
-![Smallibre library showing four demo books and the selected book’s details](docs/screenshots/library.jpg)
+![Smallibre library showing five demo books and the selected book’s details](docs/screenshots/library.jpg)
 
 Preview EPUB chapters before exporting.
 
@@ -85,7 +85,7 @@ Shortcuts are listed in the app’s native menus and apply to the active library
 
 Search matches titles and authors. Book commands require a selection visible in the current library collection.
 
-In the Sort menu, select the active option again to toggle ascending or descending order. This works in both the library and Kindle views; the active option shows its direction. Choosing a different sort starts with newest first for Recently added or A–Z for Title and Author.
+In the Sort menu, select the active option again to toggle ascending or descending order. This works in both the library and Kindle views; the active option shows a checkmark and its direction. Choosing a different sort starts with newest first for Recently added or A–Z for Title, Author and Format.
 
 ## Will it work with my reader?
 

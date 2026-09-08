@@ -33,7 +33,7 @@ final class AppModel {
     var importTask: Task<Void, Never>?
     var store: LibraryStore?
     let root: URL
-    enum Sort: String, CaseIterable { case recent = "Recently added", title = "Title", author = "Author" }
+    enum Sort: String, CaseIterable { case title = "Title", author = "Author", recent = "Recently added", format = "Format" }
 
     init(rootOverride: URL? = nil, initialize: Bool = true) {
         let arguments = ProcessInfo.processInfo.arguments
@@ -99,12 +99,22 @@ final class AppModel {
             case .recent: return $0.addedAt > $1.addedAt
             case .title: return $0.metadata.title.localizedStandardCompare($1.metadata.title) == .orderedAscending
             case .author: return $0.metadata.authors.joined().localizedStandardCompare($1.metadata.authors.joined()) == .orderedAscending
+            case .format:
+                let comparison = $0.metadata.format.localizedStandardCompare($1.metadata.format)
+                return comparison == .orderedSame ? $0.metadata.title.localizedStandardCompare($1.metadata.title) == .orderedAscending : comparison == .orderedAscending
             }
         }
         return sortReversed ? Array(ordered.reversed()) : ordered
     }
     var collectionTitle: String {
-        switch filter { case "EPUB": "EPUB books"; case "MOBI": "MOBI books"; case "AZW3": "Kindle books"; case "prepared": "Personalized"; default: "Your library" }
+        switch filter {
+        case "EPUB": "EPUB"
+        case "MOBI": "MOBI"
+        case "AZW3": "Kindle / AZW3"
+        case "prepared": "Personalized"
+        case "device": "Kindle"
+        default: "All Books"
+        }
     }
     func start() async {
         await reload()

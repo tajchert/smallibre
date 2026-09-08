@@ -19,7 +19,9 @@ import SmallibreCore
             let request = try JSONDecoder().decode(ReaderRequest.self, from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))
             let store = ReaderStore(root: request.root, connection: request.connection, expectedRootIdentity: request.rootIdentity)
             switch request.action {
-            case "scan": response = ReaderResponse(books: try await store.scan(cacheURL: !request.fullScan ? request.localRoot.appendingPathComponent("reader-cache.json") : nil), rootIdentity: store.rootIdentity)
+            case "scan":
+                let scanned = try await store.scan(cacheURL: !request.fullScan ? request.localRoot.appendingPathComponent("reader-cache.json") : nil)
+                response = ReaderResponse(books: scanned, rootIdentity: store.rootIdentity, capacity: await store.capacity())
             case "download":
                 guard let book = request.book else { throw BookError.invalid("Missing book") }
                 let library = try LibraryStore(root: request.localRoot)

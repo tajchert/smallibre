@@ -45,7 +45,7 @@ public struct EPUBBook: Sendable {
         var cover: Data?
         if let coverPath, let resource = try? archive.data(named: coverPath), resource.count < 12 * 1024 * 1024 { cover = resource }
         self.archive = archive; packagePath = path; self.chapters = chapters
-        metadata = BookMetadata(title: try values("title").first ?? "Untitled", authors: try values("creator"), language: try values("language").first ?? "", identifier: try values("identifier").first ?? "", publisher: try values("publisher").first ?? "", description: try values("description").first ?? "", format: "EPUB", cover: cover)
+        metadata = BookMetadata(title: try values("title").first ?? "Untitled", authors: try values("creator"), language: try values("language").first ?? "", identifier: try values("identifier").first ?? "", publisher: try values("publisher").first ?? "", description: try values("description").first ?? "", format: "EPUB", cover: cover, published: try values("date").first)
         let layout = try package.nodes(forXPath: "//*[local-name()='meta'][@property='rendition:layout']").first?.stringValue
         let special = try package.nodes(forXPath: "//*[local-name()='manifest']/*[@media-overlay or contains(@properties,'scripted')]")
         allowsTypography = layout != "pre-paginated" && special.isEmpty

@@ -9,6 +9,21 @@ public struct BookMetadata: Codable, Sendable, Equatable {
     public var description: String
     public var format: String
     public var cover: Data?
+    /// Publication date as the book declares it. Read-only: Smallibre never rewrites it.
+    /// Optional so library records saved before this field decode unchanged.
+    public var published: String? = nil
+    /// The year alone, when the declared date starts with one.
+    public var publishedYear: String? {
+        guard let published else { return nil }
+        let digits = published.prefix(while: \.isNumber)
+        return digits.count == 4 ? String(digits) : (published.isEmpty ? nil : published)
+    }
+    /// Only the fields Smallibre can write back into a book. Cover bytes and the declared
+    /// publication date are read-only, so comparing them would make an untouched book look
+    /// edited and cost it its byte-identical original. Compare these, never the whole value.
+    public var writableFields: BookMetadata {
+        var copy = self; copy.cover = nil; copy.published = nil; return copy
+    }
 }
 
 public enum BookError: Error, LocalizedError, Sendable {

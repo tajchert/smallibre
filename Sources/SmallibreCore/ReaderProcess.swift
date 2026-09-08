@@ -101,8 +101,9 @@ public struct ReaderResponse: Codable, Sendable {
     public var imported: LibraryBook?
     public var file: URL?
     public var error: String?
-    public init(books: [ReaderBook]? = nil, rootIdentity: String? = nil, imported: LibraryBook? = nil, file: URL? = nil, error: String? = nil) {
-        self.books = books; self.rootIdentity = rootIdentity; self.imported = imported; self.file = file; self.error = error
+    public var capacity: ReaderCapacity?
+    public init(books: [ReaderBook]? = nil, rootIdentity: String? = nil, imported: LibraryBook? = nil, file: URL? = nil, error: String? = nil, capacity: ReaderCapacity? = nil) {
+        self.books = books; self.rootIdentity = rootIdentity; self.imported = imported; self.file = file; self.error = error; self.capacity = capacity
     }
 }
 public enum ReaderClient {

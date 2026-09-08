@@ -17,6 +17,16 @@ public struct ReaderBook: Identifiable, Codable, Sendable {
     public var title: String { metadata?.title ?? URL(fileURLWithPath: relativePath).deletingPathExtension().lastPathComponent }
 }
 
+/// Free and total bytes of the volume holding a reader folder. Display only: capacity never
+/// authorizes a write, and an unavailable value simply hides the gauge.
+public struct ReaderCapacity: Codable, Sendable, Equatable {
+    public let totalBytes: Int
+    public let freeBytes: Int
+    public init(totalBytes: Int, freeBytes: Int) { self.totalBytes = totalBytes; self.freeBytes = freeBytes }
+    public var usedBytes: Int { max(0, totalBytes - freeBytes) }
+    public var usedFraction: Double { totalBytes > 0 ? min(1, max(0, Double(usedBytes) / Double(totalBytes))) : 0 }
+}
+
 /// A mounted reader's documents directory. No device databases or sidecars are modified.
 public actor ReaderStore {
     public let root: URL
@@ -31,6 +41,13 @@ public actor ReaderStore {
         var info = stat()
         guard lstat(url.path, &info) == 0 else { throw BookError.invalid("Reader folder is unavailable.") }
         return "\(info.st_dev):\(info.st_ino):\(info.st_birthtimespec.tv_sec):\(info.st_birthtimespec.tv_nsec)"
+    }
+
+    /// Runs inside the helper with the rest of the device I/O; a missing value is not an error.
+    public func capacity() -> ReaderCapacity? {
+        guard let values = try? root.resourceValues(forKeys: [.volumeTotalCapacityKey, .volumeAvailableCapacityKey]),
+              let total = values.volumeTotalCapacity, let free = values.volumeAvailableCapacity, total > 0 else { return nil }
+        return ReaderCapacity(totalBytes: total, freeBytes: min(free, total))
     }
 
     private struct Cached: Codable { let fingerprint: String; let book: ReaderBook }

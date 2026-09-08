@@ -17,7 +17,7 @@ enum MOBIBook {
         let titleOffset = Int(record.be32(84)), titleLength = Int(record.be32(88))
         guard titleOffset + titleLength <= record.count else { throw BookError.invalid("Invalid MOBI title reference.") }
         var title = text(record.subdata(in: titleOffset..<titleOffset + titleLength))
-        var authors: [String] = [], publisher = "", description = "", identifier = "", language = ""
+        var authors: [String] = [], publisher = "", description = "", identifier = "", language = "", published = ""
         var coverOffset: Int?
         if record.be32(128) & 0x40 != 0 {
             let start = 16 + length
@@ -35,6 +35,7 @@ enum MOBIBook {
                 case 101: publisher = text(value)
                 case 103: description = text(value)
                 case 104: identifier = text(value)
+                case 106: published = text(value)
                 case 503: title = text(value)
                 case 524: language = text(value)
                 case 201: if value.count == 4 { coverOffset = Int(value.be32(0)) }
@@ -48,6 +49,6 @@ enum MOBIBook {
             let index = Int(record.be32(108)) + coverOffset
             if index >= 0, index < count, offsets[index + 1] - offsets[index] < 12 * 1024 * 1024 { cover = data.subdata(in: offsets[index]..<offsets[index + 1]) }
         }
-        return BookMetadata(title: title.isEmpty ? "Untitled" : title, authors: authors, language: language, identifier: identifier, publisher: publisher, description: description, format: version >= 8 ? "AZW3" : "MOBI", cover: cover)
+        return BookMetadata(title: title.isEmpty ? "Untitled" : title, authors: authors, language: language, identifier: identifier, publisher: publisher, description: description, format: version >= 8 ? "AZW3" : "MOBI", cover: cover, published: published.isEmpty ? nil : published)
     }
 }
