@@ -47,3 +47,28 @@ extension ReaderProcessTests {
         task.cancel(); _ = try? await task.value
     }
 }
+
+extension ReaderProcessTests {
+    func testImmediateExitReturnsOutputRepeatedly() async throws {
+        for _ in 0..<20 {
+            let output = try await ReaderProcess.run(executable: URL(fileURLWithPath: "/bin/echo"), arguments: ["reader-output"], timeout: 2)
+            XCTAssertEqual(String(decoding: output, as: UTF8.self), "reader-output\n")
+        }
+    }
+
+    func testLaunchFailureDoesNotBlockNextHelper() async throws {
+        do {
+            _ = try await ReaderProcess.run(executable: URL(fileURLWithPath: "/nonexistent-smallibre-helper"), arguments: [])
+            XCTFail("Missing executable must fail")
+        } catch {}
+        let output = try await ReaderProcess.run(executable: URL(fileURLWithPath: "/bin/echo"), arguments: ["recovered"])
+        XCTAssertEqual(String(decoding: output, as: UTF8.self), "recovered\n")
+    }
+
+    func testNonzeroExitReportsFailure() async throws {
+        do {
+            _ = try await ReaderProcess.run(executable: URL(fileURLWithPath: "/usr/bin/false"), arguments: [])
+            XCTFail("Unsuccessful helper must fail")
+        } catch { XCTAssertTrue(error.localizedDescription.contains("stopped unexpectedly")) }
+    }
+}

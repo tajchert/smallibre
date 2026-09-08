@@ -71,7 +71,7 @@ Smallibre currently works with readers that appear as a mounted drive or folder 
 | MTP reader | Not yet |
 | DRM-protected books / KFX | Limited device listing; no decryption, import, or editing |
 
-Library metadata edits are embedded in EPUB exports. MOBI/AZW3 exports from the library preserve original bytes; editing device metadata is a separate action. Smallibre does not automatically mirror or delete books when you connect a reader.
+Library metadata edits are embedded in EPUB exports. MOBI/AZW3 exports from the library preserve original bytes; editing device metadata is a separate action. Smallibre does not automatically mirror or delete books when you connect a reader. Reader helpers run only for individual operations, without periodic polling. Unrelated volume mounts do not trigger scans. System sleep cancels reader work and invalidates device selections; after waking, refresh explicitly and check Backups & history before retrying an interrupted write. Cancellation does not prove a write failed, and interrupted writes are never automatically replayed.
 
 Fixed-layout EPUBs, scripted books, media overlays, embedded-font customization, and broad format conversion are outside the current scope. Large-library performance has not yet been established.
 

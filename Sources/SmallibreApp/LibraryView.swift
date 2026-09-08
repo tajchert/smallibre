@@ -34,10 +34,6 @@ struct LibraryView: View {
         } : nil)
         .task { await model.start() }
         .onOpenURL { model.importURLs([$0]) }
-        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in model.reader.discover() }
-        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didUnmountNotification)) { note in
-            if let url = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL { model.reader.disconnected(url) }
-        }
         .dropDestination(for: URL.self) { urls, _ in
             guard !model.importing else { return false }
             model.importURLs(urls); return true

@@ -5,8 +5,40 @@ private actor ReaderProcessGate {
     static let shared = ReaderProcessGate()
     private var current: Process?
     func start(_ process: Process) throws {
+        try Task.checkCancellation()
         guard current?.isRunning != true else { throw BookError.invalid("The previous reader operation is still stopping. Wait or reconnect before starting another operation.") }
         try process.run(); current = process
+    }
+}
+
+// The lock protects the one-shot result and continuation across process exit,
+// cancellation and deadline callbacks. Resume outside the lock, exactly once.
+private final class ReaderProcessCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var result: Result<Void, Error>?
+    private var continuation: CheckedContinuation<Void, Error>?
+
+    func finish(_ result: Result<Void, Error>) {
+        lock.lock()
+        guard self.result == nil else { lock.unlock(); return }
+        self.result = result
+        let continuation = self.continuation
+        self.continuation = nil
+        lock.unlock()
+        continuation?.resume(with: result)
+    }
+
+    func wait() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            lock.lock()
+            if let result {
+                lock.unlock()
+                continuation.resume(with: result)
+            } else {
+                self.continuation = continuation
+                lock.unlock()
+            }
+        }
     }
 }
 
@@ -23,12 +55,20 @@ public enum ReaderProcess {
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
             try? output.close(); try? FileManager.default.removeItem(at: file)
         }
-        try await ReaderProcessGate.shared.start(process)
-        let deadline = ContinuousClock.now.advanced(by: .seconds(timeout))
-        while process.isRunning {
-            try Task.checkCancellation()
-            guard ContinuousClock.now < deadline else { throw BookError.invalid("Reader operation timed out. Reconnect and refresh. Check operation history before retrying a write.") }
-            try await Task.sleep(for: .milliseconds(50))
+        let completion = ReaderProcessCompletion()
+        process.terminationHandler = { _ in completion.finish(.success(())) }
+        try await withTaskCancellationHandler {
+            try await ReaderProcessGate.shared.start(process)
+            let deadline = Task {
+                do {
+                    try await Task.sleep(for: .seconds(timeout))
+                    completion.finish(.failure(BookError.invalid("Reader operation timed out. Reconnect and refresh. Check operation history before retrying a write.")))
+                } catch is CancellationError {} catch { completion.finish(.failure(error)) }
+            }
+            defer { deadline.cancel() }
+            try await completion.wait()
+        } onCancel: {
+            completion.finish(.failure(CancellationError()))
         }
         try Task.checkCancellation()
         guard process.terminationStatus == 0 else { throw BookError.invalid("Reader helper stopped unexpectedly. Refresh and check operation history before retrying.") }
