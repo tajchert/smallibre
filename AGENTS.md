@@ -50,6 +50,8 @@ git diff --check
 
 Packaging produces `build/Smallibre.app` for the host architecture, including `SmallibreReaderHelper`, icon, license and sample book. Signing is ad hoc: do not claim Developer ID signing, notarization, universal architecture support or a validated public release. CI currently uses `macos-latest`; it does not certify the minimum supported OS.
 
+When publishing a release, also update and push `Casks/smallibre.rb` in `tajchert/homebrew-tap` with the new version and the published ZIP's verified SHA-256. GitHub releases do not update the cask automatically. Users need `brew update` before `brew upgrade --cask smallibre`.
+
 Use a disposable library for manual development:
 
 ```sh
