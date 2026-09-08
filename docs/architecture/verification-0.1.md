@@ -26,3 +26,9 @@ The included original sample and synthetic fixtures were used; no personal books
 ## Still to verify or build
 
 No large real-world book corpus, physical reader transfer, EPUBCheck validation, 10,000-book benchmark, Intel build or older macOS test has been completed. Native MOBI content conversion, AZW3 writing and MTP transport are not implemented. Folder export and EPUB personalization are the supported preparation/transfer paths in this increment. See README for format limits and the next increments.
+
+## User-provided EPUB compatibility check
+
+Also tested the owner's `Silos.epub` locally on 2026-09-08: 1,871,289 bytes, 143 archive resources and 96 spine items. The optional `LocalBookTests` check passed import, duplicate detection, unchanged byte-identical preparation, metadata and typography export, every exported resource's integrity check, preview HTML preparation for every spine item, database reopen and source byte preservation. This exercises preview preparation, not visual rendering of all chapters or physical-reader fidelity. The complete check took approximately 0.42 seconds on this host; this is a single warm development test, not a product benchmark. Temporary library/export files were removed and the book was not added to Git.
+
+Repeat with `NOVA_TEST_EPUB=/absolute/path/to/book.epub swift test --filter LocalBookTests`. The test skips when the environment variable is absent.
