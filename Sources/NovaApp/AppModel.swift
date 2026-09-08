@@ -5,6 +5,7 @@ import NovaCore
 
 @MainActor @Observable
 final class AppModel {
+    let reader = ReaderModel()
     var books: [LibraryBook] = []
     var selection: UUID?
     var filter = "all"
@@ -115,6 +116,7 @@ final class AppModel {
             do {
                 let url = try await store.export(book.id, to: folder)
                 status = "Exported and verified · \(url.lastPathComponent)"
+                if let device = reader.folder, folder.path.hasPrefix(device.path) { reader.refresh() }
                 transferBook = nil
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             } catch { self.error = error.localizedDescription }

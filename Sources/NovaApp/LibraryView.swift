@@ -9,7 +9,9 @@ struct LibraryView: View {
         NavigationSplitView {
             sidebar.navigationSplitViewColumnWidth(min: 185, ideal: 205, max: 240)
         } content: {
-            shelf.navigationSplitViewColumnWidth(min: 380, ideal: 650)
+            Group {
+                if model.filter == "device" { ReaderView(reader: model.reader, model: model) } else { shelf }
+            }.navigationSplitViewColumnWidth(min: 380, ideal: 650)
         } detail: {
             InspectorView(model: model).navigationSplitViewColumnWidth(min: 250, ideal: 285, max: 340)
         }
@@ -27,6 +29,10 @@ struct LibraryView: View {
         .searchable(text: $model.search, placement: .toolbar, prompt: "Search books or authors")
         .task { await model.start() }
         .onOpenURL { model.importURLs([$0]) }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in model.reader.discover() }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didUnmountNotification)) { note in
+            if let url = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL { model.reader.disconnected(url) }
+        }
         .dropDestination(for: URL.self) { urls, _ in
             guard !model.importing else { return false }
             model.importURLs(urls); return true
@@ -55,6 +61,8 @@ struct LibraryView: View {
             ForEach(["EPUB", "MOBI", "AZW3"], id: \.self) { format in
                 navigationRow(format == "AZW3" ? "Kindle / AZW3" : format, icon: "doc.text", key: format, count: model.books.filter { $0.metadata.format == format }.count)
             }
+            Text("DEVICE").font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary).padding(.horizontal, 21).padding(.top, 28).padding(.bottom, 10)
+            navigationRow("Kindle", icon: "externaldrive", key: "device", count: model.reader.books.count)
             Spacer()
             VStack(alignment: .leading, spacing: 8) {
                 Image(systemName: "externaldrive").font(.system(size: 20, weight: .light))
@@ -96,6 +104,7 @@ struct LibraryView: View {
                                         .background(model.selection == book.id ? NovaTheme.accent.opacity(0.1) : .clear, in: .rect(cornerRadius: 8))
                                         .overlay { RoundedRectangle(cornerRadius: 8).stroke(model.selection == book.id ? NovaTheme.accent.opacity(0.6) : .clear, lineWidth: 1.5) }
                                     Text(book.metadata.title).font(.system(size: 12, weight: .medium)).lineLimit(2).foregroundStyle(.primary)
+                                    if model.reader.hashes.contains(book.hash) { Label("On Kindle", systemImage: "externaldrive").font(.system(size: 10)).foregroundStyle(NovaTheme.accent) }
                                     Text(book.metadata.authors.isEmpty ? "Unknown author" : book.metadata.authors.joined(separator: ", ")).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                                     HStack(spacing: 6) { Text(book.metadata.format).font(.system(size: 8, weight: .semibold)).tracking(0.8); if book.typography.enabled { Image(systemName: "slider.horizontal.3").font(.system(size: 9)) } }.foregroundStyle(.secondary)
                                 }.contentShape(Rectangle())

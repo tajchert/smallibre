@@ -25,6 +25,7 @@ Open `Package.swift` in Xcode for development. The packaging script creates a lo
 - Preview EPUB chapters in an isolated, network-blocked WebKit view.
 - Search Open Library on demand and review title/author suggestions before applying them.
 - Export verified copies without overwriting existing files, including to a selected mounted reader folder.
+- Browse a mounted Kindle, refresh its inventory, see exact library matches, download supported books and delete selected device files with confirmation.
 
 ## Deliberate limits
 
@@ -32,7 +33,7 @@ This is the first working increment, not a complete Calibre replacement. **It do
 
 Typography targets ordinary reflowable EPUBs, not fixed-layout books, scripted books or media overlays. Fonts use the device's generic serif/sans-serif families; there is no font embedding/subsetting. SVG covers fall back to a generated jacket. SVG spine chapters cannot be previewed. DRM, ZIP64, multipart archives, ambiguous resource paths and oversized resources are rejected. Limits: 256 MB compressed/expanded book, 64 MB per resource, 8 MB per XML document, 10,000 ZIP entries.
 
-The SQLite database queries are simple and the UI currently loads library summaries in memory. A 10k-book performance target from the design has **not** been demonstrated. Corpus compatibility, update/backup UX, undo history, automatic mounted-device discovery and recoverable MTP job receipts are future work. The current app exposes folder export, not automatic device synchronization.
+The SQLite database queries are simple and the UI currently loads library summaries in memory. A 10k-book performance target from the design has **not** been demonstrated. Corpus compatibility, update/backup UX, undo history, broader device discovery and recoverable MTP job receipts are future work. The current app exposes folder export, not automatic device synchronization.
 
 ## Your files
 
@@ -67,3 +68,5 @@ The locally supplied `calibre/` checkout is reference material and is ignored by
 4. Add MTP transport and durable transfer reconciliation; certify unplug/retry behavior on hardware.
 
 See `docs/architecture/native-swift-decision.md` for the accepted direction and `docs/architecture/verification-0.1.md` for the measured first build.
+
+See `docs/architecture/kindle-management.md` for Kindle management behavior and hardware verification.
