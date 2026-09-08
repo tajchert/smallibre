@@ -5,6 +5,7 @@ import NovaCore
 struct PreviewView: View {
     let content: PreviewContent
     @State private var chapter = 0
+    @State private var previewError: String?
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(spacing: 0) {
@@ -17,7 +18,8 @@ struct PreviewView: View {
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction).padding(.leading, 14)
             }.padding(18)
             Divider()
-            BookWebView(epub: content.epub, chapter: chapter)
+            if let previewError { ContentUnavailableView("Preview unavailable", systemImage: "book.closed", description: Text(previewError)).frame(maxHeight: .infinity) }
+            else { BookWebView(epub: content.epub, chapter: chapter, error: $previewError) }
             Divider()
             Text("Your reader’s settings may change the final appearance.").font(.system(size: 10)).foregroundStyle(.secondary).padding(10)
         }.frame(width: 830, height: 680).background(NovaTheme.canvas)
@@ -27,7 +29,8 @@ struct PreviewView: View {
 private struct BookWebView: NSViewRepresentable {
     let epub: EPUBBook
     let chapter: Int
-    func makeCoordinator() -> Coordinator { Coordinator(epub: epub) }
+    @Binding var error: String?
+    func makeCoordinator() -> Coordinator { Coordinator(epub: epub, error: $error) }
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
@@ -36,17 +39,36 @@ private struct BookWebView: NSViewRepresentable {
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.navigationDelegate = context.coordinator
         view.allowsBackForwardNavigationGestures = false
+        let coordinator = context.coordinator
+        Task { [weak view, weak coordinator] in
+            do {
+                let rules = #"[{"trigger":{"url-filter":".*"},"action":{"type":"block"}},{"trigger":{"url-filter":"^nova-book://book/"},"action":{"type":"ignore-previous-rules"}},{"trigger":{"url-filter":"^data:"},"action":{"type":"ignore-previous-rules"}}]"#
+                let list = try await WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "NovaOfflinePreview-v1", encodedContentRuleList: rules)
+                guard let view, let coordinator, let list else { return }
+                view.configuration.userContentController.add(list)
+                coordinator.rulesReady = true
+                coordinator.loadPending(in: view)
+            } catch { coordinator?.error.wrappedValue = "Could not initialize the offline preview. No book content was loaded." }
+        }
         return view
     }
     func updateNSView(_ view: WKWebView, context: Context) {
         guard context.coordinator.chapter != chapter else { return }
         context.coordinator.chapter = chapter
-        view.load(URLRequest(url: URL(string: "nova-book://book/")!.appendingPathComponent(epub.chapters[chapter])))
+        context.coordinator.pendingURL = URL(string: "nova-book://book/")!.appendingPathComponent(epub.chapters[chapter])
+        context.coordinator.loadPending(in: view)
     }
     @MainActor final class Coordinator: NSObject, WKURLSchemeHandler, WKNavigationDelegate {
         let epub: EPUBBook
         var chapter: Int?
-        init(epub: EPUBBook) { self.epub = epub }
+        var rulesReady = false
+        var pendingURL: URL?
+        let error: Binding<String?>
+        init(epub: EPUBBook, error: Binding<String?>) { self.epub = epub; self.error = error }
+        func loadPending(in view: WKWebView) {
+            guard rulesReady, let pendingURL else { return }
+            view.load(URLRequest(url: pendingURL))
+        }
         func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
             guard let url = urlSchemeTask.request.url, url.host == "book" else { urlSchemeTask.didFailWithError(URLError(.unsupportedURL)); return }
             let path = String(url.path.dropFirst())
@@ -76,7 +98,13 @@ private struct BookWebView: NSViewRepresentable {
         func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {}
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
             let url = navigationAction.request.url
-            decisionHandler(url?.scheme == "nova-book" && url?.host == "book" ? .allow : .cancel)
+            decisionHandler(url.map(PreviewSanitizer.allowsNavigation) == true ? .allow : .cancel)
+        }
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError failure: Error) {
+            error.wrappedValue = failure.localizedDescription
+        }
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError failure: Error) {
+            error.wrappedValue = failure.localizedDescription
         }
     }
 }

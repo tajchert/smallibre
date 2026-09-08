@@ -1,6 +1,9 @@
 import Foundation
 
 public enum PreviewSanitizer {
+    public static func allowsNavigation(_ url: URL) -> Bool {
+        url.scheme == "nova-book" && url.host == "book" && ["html", "xhtml", "htm"].contains(url.pathExtension.lowercased())
+    }
     public static func html(_ data: Data) throws -> Data {
         let document = try SafeXML.document(data)
         let blocked: Set<String> = ["script", "iframe", "frame", "frameset", "object", "embed", "form", "base", "meta"]

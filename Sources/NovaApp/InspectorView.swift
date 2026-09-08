@@ -18,6 +18,7 @@ struct InspectorView: View {
                         VStack(spacing: 9) {
                             Button { model.openPreview(book) } label: { Label("Preview book", systemImage: "book").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).controlSize(.large).disabled(book.metadata.format != "EPUB" || model.operation != nil)
                             Button { model.editing = book } label: { Label("Details & typography", systemImage: "slider.horizontal.3").frame(maxWidth: .infinity) }.controlSize(.large)
+                            Button { model.metadataBook = book } label: { Label("Find book details…", systemImage: "magnifyingglass").frame(maxWidth: .infinity) }.controlSize(.large)
                         }
                         Divider()
                         VStack(alignment: .leading, spacing: 14) {
@@ -58,6 +59,7 @@ struct EditBookView: View {
     @State var book: LibraryBook
     @State private var authors: String
     @State private var saving = false
+    @State private var supportsTypography: Bool?
     @Environment(\.dismiss) private var dismiss
     init(model: AppModel, book: LibraryBook) { self.model = model; self._book = State(initialValue: book); self._authors = State(initialValue: book.metadata.authors.joined(separator: "; ")) }
     var body: some View {
@@ -70,9 +72,9 @@ struct EditBookView: View {
                     TextField("Language", text: $book.metadata.language, prompt: Text("en, pl, fr…"))
                     TextField("Publisher", text: $book.metadata.publisher)
                 }
-                if book.metadata.format == "EPUB" {
+                if book.metadata.format == "EPUB", supportsTypography != false {
                     Section {
-                        Toggle("Personalize body typography", isOn: $book.typography.enabled)
+                        Toggle("Personalize body typography", isOn: $book.typography.enabled).disabled(supportsTypography == nil)
                         if book.typography.enabled {
                             Picker("Body font", selection: $book.typography.font) { Text("Publisher’s choice").tag(TypographySettings.Font.original); Text("Serif").tag(TypographySettings.Font.serif); Text("Sans serif").tag(TypographySettings.Font.sansSerif) }
                             LabeledContent("Line spacing", value: book.typography.lineHeight.formatted(.number.precision(.fractionLength(1))))
@@ -82,8 +84,10 @@ struct EditBookView: View {
                             Text("Changes apply to body text in reflowable EPUBs. Preview before exporting; your reader may render fonts differently.").font(.caption).foregroundStyle(.secondary)
                         }
                     } header: { Text("Reading preferences") }
-                } else {
+                } else if book.metadata.format != "EPUB" {
                     Section { Text("These details are saved in your library. MOBI and AZW3 export their original bytes; embedded metadata and typography editing are not supported yet.").font(.callout).foregroundStyle(.secondary) }
+                } else {
+                    Section("Reading preferences") { Text("This book uses a specialized layout. Nova preserves its typography.").font(.callout).foregroundStyle(.secondary) }
                 }
                 Section("Description") { TextEditor(text: $book.metadata.description).frame(minHeight: 65) }
             }.formStyle(.grouped)
@@ -98,5 +102,8 @@ struct EditBookView: View {
                 }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction).disabled(saving || book.metadata.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }.padding(20)
         }.frame(width: 570, height: 650).background(NovaTheme.canvas).tint(NovaTheme.accent)
+            .task {
+                if let store = model.store { supportsTypography = (try? await store.supportsTypography(for: book.id)) ?? false }
+            }
     }
 }

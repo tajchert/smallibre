@@ -53,4 +53,17 @@ final class LibraryTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(try output.data(named: "EPUB/chapter1.xhtml"), try epub.archive.data(named: "EPUB/chapter1.xhtml"))
         XCTAssertEqual(output.names.first, "mimetype")
     }
+    func testUnsupportedTypographyIsRejectedBeforeChangingLibrary() async throws {
+        let folder = try root(), store = try LibraryStore(root: folder)
+        let source = try EPUBBook(data: Data(contentsOf: fixture()))
+        let opf = String(data: try source.archive.data(named: source.packagePath), encoding: .utf8)!.replacingOccurrences(of: "</metadata>", with: "<meta property=\"rendition:layout\">pre-paginated</meta></metadata>")
+        let file = folder.appendingPathComponent("fixed.epub")
+        try source.archive.writing(replacements: [source.packagePath: Data(opf.utf8)]).write(to: file)
+        var book = try await store.importBook(from: file).book
+        book.typography.enabled = true
+        do { try await store.update(book); XCTFail("Fixed-layout typography must not be saved") } catch {}
+        let saved = try await store.books()
+        XCTAssertFalse(saved[0].typography.enabled)
+        _ = try await store.preparedData(for: book.id)
+    }
 }

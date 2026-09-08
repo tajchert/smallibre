@@ -18,6 +18,8 @@ final class AppModel {
     var preview: PreviewContent?
     var editing: LibraryBook?
     var transferBook: LibraryBook?
+    var metadataBook: LibraryBook?
+    let metadataLookup = MetadataLookup()
     var importTask: Task<Void, Never>?
     var store: LibraryStore?
     let root: URL
@@ -126,6 +128,9 @@ final class AppModel {
             do {
                 let data = try await store.preparedData(for: book.id)
                 let epub = try await Task.detached { try EPUBBook(data: data) }.value
+                guard epub.chapters.allSatisfy({ ["html", "xhtml", "htm"].contains(($0 as NSString).pathExtension.lowercased()) }) else {
+                    throw BookError.unsupported("This book uses a chapter format that Nova cannot preview yet. You can still export the original.")
+                }
                 preview = PreviewContent(id: UUID(), title: book.metadata.title, epub: epub)
             } catch { self.error = error.localizedDescription }
             operation = nil

@@ -70,9 +70,18 @@ public actor LibraryStore {
         saved.metadata.description = book.metadata.description
         saved.typography = book.typography
         if saved.metadata.format != "EPUB", saved.typography.enabled { throw BookError.unsupported("Typography editing currently supports EPUB. MOBI/AZW3 files export unchanged.") }
+        if saved.typography.enabled {
+            guard saved.typography.lineHeight.isFinite, (1...2.4).contains(saved.typography.lineHeight), saved.typography.marginPercent.isFinite, (0...12).contains(saved.typography.marginPercent) else { throw BookError.invalid("Typography values are outside the supported range.") }
+            guard try EPUBBook(data: Data(contentsOf: originalLocation(saved))).allowsTypography else { throw BookError.unsupported("This book uses fixed layout, scripts or media overlays. Its original typography must be preserved.") }
+        }
         try database.save(saved, insert: false)
     }
     public func originalURL(for id: UUID) throws -> URL { originalLocation(try requireBook(id)) }
+    public func supportsTypography(for id: UUID) throws -> Bool {
+        let book = try requireBook(id)
+        guard book.metadata.format == "EPUB" else { return false }
+        return try EPUBBook(data: Data(contentsOf: originalLocation(book))).allowsTypography
+    }
     public func preparedData(for id: UUID) throws -> Data {
         let book = try requireBook(id)
         let original = try Data(contentsOf: originalLocation(book), options: .mappedIfSafe)

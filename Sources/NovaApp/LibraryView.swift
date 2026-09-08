@@ -35,6 +35,7 @@ struct LibraryView: View {
         .sheet(item: $model.editing) { book in EditBookView(model: model, book: book) }
         .sheet(item: $model.preview) { PreviewView(content: $0) }
         .sheet(item: $model.transferBook) { book in TransferView(model: model, book: book) }
+        .sheet(item: $model.metadataBook) { book in MetadataView(model: model, book: book) }
         .alert("Couldn’t complete the operation", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK") { model.error = nil }
         } message: { Text(model.error ?? "") }
