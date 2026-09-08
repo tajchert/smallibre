@@ -33,7 +33,11 @@ struct InspectorView: View {
                         }
                         Divider()
                         VStack(spacing: 9) {
-                            Button { model.transferBook = book } label: { Label("Send to reader…", systemImage: "externaldrive").frame(maxWidth: .infinity) }.controlSize(.large).disabled(model.operation != nil)
+                            Button { model.reader.sendToDevice(book, model: model) } label: { Label("Send to device", systemImage: "externaldrive").frame(maxWidth: .infinity) }.controlSize(.large).disabled(model.operation != nil || model.reader.busy || !model.reader.libraryReady)
+                            if model.reader.busy {
+                                ProgressView(model.reader.status ?? "Working with device…").font(.caption)
+                                Button("Stop") { model.reader.cancel() }
+                            }
                             if book.metadata.format == "EPUB" {
                                 Button("Export Kindle AZW3…") { model.kindleExportBook = book }.disabled(model.operation != nil)
                             }

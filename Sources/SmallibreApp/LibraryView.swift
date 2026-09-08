@@ -74,7 +74,7 @@ struct LibraryView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Image(systemName: "externaldrive").font(.system(size: 20, weight: .light))
                 Text("Bring your library along").font(.system(size: 12, weight: .medium))
-                Text("Connect a reader, select a book, then choose Send to reader.").font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
+                Text("Connect a reader, select a book, then choose Send to device.").font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
             }.padding(15).frame(maxWidth: .infinity, alignment: .leading).background(.primary.opacity(0.035), in: .rect(cornerRadius: 10)).padding(14)
             HStack(spacing: 6) { Circle().fill(SmallibreTheme.accent).frame(width: 5, height: 5); Text("On your Mac. Always yours.").font(.system(size: 10)).foregroundStyle(.secondary) }.padding(.horizontal, 20).padding(.bottom, 20)
         }.background(SmallibreTheme.panel)

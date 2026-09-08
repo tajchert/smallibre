@@ -14,13 +14,13 @@ Smallibre brings your ebook library and your connected reader into one place. Ad
 
 Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **6.7 MB**. No Calibre installation or additional runtime is needed.
 
-> **Early alpha:** mounted-reader management is available today. Version 0.3.0 includes native EPUB-to-AZW3 conversion, font fallback, local Kindle export, and mounted-Kindle send. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
+> **Early alpha:** mounted-reader management is available today. Version 0.3.1 includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
 
 ## What you can do
 
 - **Build your bookshelf.** Import EPUB, MOBI, and standalone AZW3 books. Browse covers, search, and sort your library. Identical files are detected automatically.
 - **Make books yours.** Edit book details, review suggestions from Open Library, and adjust fonts, spacing, and margins in reflowable EPUBs.
-- **Send EPUBs to Kindle.** Choose Kindle in Send to reader, review the conversion notes, then select the reader’s books folder. Or use **Export Kindle AZW3…** for a local AZW3 file. Supported EPUBs keep saved metadata and typography changes.
+- **Send EPUBs to Kindle.** Click **Send to device** to detect a mounted Kindle, convert the EPUB, and send a verified copy. Folder selection is only needed if automatic detection fails; the fallback also supports EPUB readers. Or use **Export Kindle AZW3…** for a local AZW3 file. Supported EPUBs keep saved metadata and typography changes.
 - **Take a look inside.** Preview EPUB chapters before exporting a new copy.
 - **See what’s on your Kindle.** Browse a mounted reader and see exact matches with your Mac library.
 - **Manage device copies.** Download supported books, back up files, or delete selected copies after a verified local backup. Update title, author, and publisher on supported DRM-free MOBI/AZW3 device files.
@@ -93,7 +93,7 @@ Smallibre currently works with readers that appear as a mounted drive or folder 
 | --- | --- |
 | Reflowable EPUB | Import, preview, edit details and typography, export EPUB |
 | DRM-free MOBI / standalone AZW3 | Import and export; supported device copies allow metadata updates |
-| EPUB → Kindle format | Native AZW3 preparation, conversion-note review, local export and verified mounted-reader send |
+| EPUB → Kindle format | Native AZW3 preparation, automatic mounted-Kindle send, conversion notes and local export |
 | Mounted USB reader | Inventory and explicit transfer/management actions |
 | MTP reader | Developer read-only probe; no app connection or transfer support |
 | DRM-protected books / KFX | Limited device listing; no decryption, import, or editing |
@@ -104,7 +104,7 @@ Fixed-layout EPUBs, scripted books, media overlays, embedded-font customization,
 
 ## Conversion and MTP development status
 
-Native conversion now prepares immutable AZW3 artifacts with source, settings, converter-version and output hashes. A send uses the exact reviewed artifact, creates a new device file, verifies a full readback and retains a backup and receipt. Corrupt cached files are rejected; interrupted writes are never retried automatically.
+Native conversion now prepares immutable AZW3 artifacts with source, settings, converter-version and output hashes. A send uses the exact prepared artifact, creates a new device file, verifies a full readback and retains a backup and receipt. Corrupt cached files are rejected; interrupted writes are never retried automatically.
 
 The supported profile is deliberately bounded: reflowable EPUB 2/3, ordinary prose and lists, internal links, PNG/JPEG images, cover metadata, and basic inline/linked CSS. Nested navigation is flattened with a conversion note. DRM, SVG/MathML, scripts, media overlays, remote resources and CSS imports are rejected. Version 0.3.0 adds font fallback for embedded and recognized obfuscated fonts, plus simple page-margin normalization. See the [known limitations and missing features](docs/epub-kindle-limitations.md) before relying on conversion for complex books.
 

@@ -121,6 +121,13 @@ private struct ReaderHistoryView: View {
                     Text("\(receipt.transfer == nil ? receipt.operation.capitalized : "Send Kindle copy") · \(receipt.transfer?.artifact.suggestedFilename ?? receipt.source)").lineLimit(2)
                     Text("\((receipt.state == "completed" || receipt.transfer?.state == .verified) ? "Completed" : "Needs review") · \(receipt.date.formatted())").font(.caption).foregroundStyle(.secondary)
                     if let detail = receipt.detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
+                    if let artifact = receipt.transfer?.artifact, !artifact.warnings.isEmpty {
+                        DisclosureGroup("Conversion notes") {
+                            ForEach(Array(artifact.warnings.enumerated()), id: \.offset) { _, warning in
+                                Text(warning).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                     Button("Show backup in Finder") { NSWorkspace.shared.activateFileViewerSelecting([receipt.backup]) }
                 }.padding(.vertical, 5)
             }.overlay { if reader.receipts.isEmpty { ContentUnavailableView("No device operations yet", systemImage: "clock") } }

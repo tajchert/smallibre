@@ -21,7 +21,7 @@ import SmallibreCore
     private var interruptedBySleep = false
     private var operationID = UUID()
     var localRoot: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Smallibre")
-    var helper: URL { Bundle.main.executableURL!.deletingLastPathComponent().appendingPathComponent("SmallibreReaderHelper") }
+    var helper: URL = Bundle.main.executableURL!.deletingLastPathComponent().appendingPathComponent("SmallibreReaderHelper")
     var hashes: Set<String> { Set(books.map(\.hash).filter { !$0.isEmpty }) }
     enum LibraryMatch: Equatable { case original, converted }
     /// Display-only provenance association; device mutations still use scanned identities and hashes.
@@ -170,6 +170,69 @@ import SmallibreCore
             status = "\(done) completed" + (failures.isEmpty ? "" : " · stopped on an error; remaining books unchanged")
             if !failures.isEmpty { error = failures.joined(separator: "\n") }
             if action == "metadata", done > 0 { finish(token); refresh(full: true) }
+        }
+    }
+    /// One user action owns discovery, conversion and transfer. Only discovery failure
+    /// opens the manual fallback; conversion/write failures must never replay a send.
+    func sendToDevice(_ book: LibraryBook, model: AppModel) {
+        guard libraryReady, !sleeping, !busy, model.operation == nil, let store = model.store else { return }
+        guard !needsRefreshAfterSleep else {
+            model.error = "Refresh or reconnect the reader after sleep before sending. Check Backups & history before retrying an interrupted write."
+            return
+        }
+        guard ["EPUB", "MOBI", "AZW3"].contains(book.metadata.format) else {
+            model.transferBook = book
+            return
+        }
+        localRoot = model.root
+        let destination = folder ?? URL(fileURLWithPath: "/Volumes/Kindle/documents")
+        let connection = generation, expectedIdentity = rootIdentity
+        let token = begin("Checking connected Kindle…")
+        model.error = nil
+        task = Task {
+            defer { finish(token) }
+            let identity: String
+            do {
+                try Task.checkCancellation()
+                guard operationID == token else { return }
+                let response = try await ReaderClient.perform(
+                    ReaderRequest(action: "scan", root: destination, connection: connection,
+                                  rootIdentity: expectedIdentity, localRoot: localRoot), executable: helper)
+                try Task.checkCancellation()
+                guard operationID == token else { return }
+                guard let verifiedIdentity = response.rootIdentity else { throw BookError.invalid("Device identity unavailable") }
+                identity = verifiedIdentity
+                folder = destination; rootIdentity = identity; books = response.books ?? []
+            } catch is CancellationError { return }
+            catch {
+                guard operationID == token else { return }
+                self.error = "Could not access the Kindle automatically. Connect it and choose its books folder. " + error.localizedDescription
+                model.transferBook = book
+                return
+            }
+            do {
+                var artifact: PreparedBookArtifact?
+                if book.metadata.format == "EPUB" {
+                    status = "Preparing Kindle copy…"
+                    artifact = try await store.prepareKindleArtifact(for: book.id)
+                }
+                try Task.checkCancellation()
+                guard operationID == token else { return }
+                status = "Sending and verifying book…"
+                let request = ReaderRequest(action: artifact == nil ? "send" : "sendArtifact",
+                    root: destination, connection: connection, rootIdentity: identity,
+                    localRoot: localRoot, libraryBookID: book.id, preparedArtifact: artifact)
+                let result = try await ReaderClient.perform(request, executable: helper, timeout: 60)
+                guard operationID == token else { return }
+                status = "Sent and verified · \(result.file?.lastPathComponent ?? book.metadata.title)"
+                if let artifact, !artifact.warnings.isEmpty {
+                    status = (status ?? "Sent and verified") + " · Conversion notes are saved in Backups & history."
+                }
+                model.status = status
+            } catch is CancellationError {} catch {
+                guard operationID == token else { return }
+                self.error = error.localizedDescription; model.error = error.localizedDescription
+            }
         }
     }
     func send(_ book: LibraryBook, destination: URL, model: AppModel, artifact: PreparedBookArtifact? = nil) {

@@ -64,7 +64,7 @@ struct TransferView: View {
             HStack {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
-                Button(localExport ? "Export AZW3" : "Send book", systemImage: "arrow.up.doc") {
+                Button(localExport ? "Export AZW3" : "Send to device", systemImage: "arrow.up.doc") {
                     guard let folder else { return }
                     if localExport {
                         if let artifact { model.exportKindle(artifact, book: book, to: folder) }
@@ -76,7 +76,7 @@ struct TransferView: View {
                     .disabled(!compatible || folder == nil || model.operation != nil || model.reader.busy || preparing || (needsConversion && artifact == nil))
             }
         }.padding(28).frame(width: 490).background(SmallibreTheme.canvas).tint(SmallibreTheme.accent)
-            .onAppear { reader = book.metadata.format == "EPUB" ? "epub" : "kindle" }
+            .onAppear { reader = "kindle" }
             .task(id: needsConversion) {
                 guard !Task.isCancelled else { return }
                 let token = UUID()
