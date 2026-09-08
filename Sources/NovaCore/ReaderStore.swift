@@ -2,25 +2,29 @@ import Foundation
 import CryptoKit
 import Darwin
 
-public struct ReaderBook: Identifiable, Sendable {
+public struct ReaderBook: Identifiable, Codable, Sendable {
     public var id: String { relativePath }
-    let connection: UUID
+    var connection: UUID
     public let relativePath: String
     public let metadata: BookMetadata?
     public let hash: String
     public let byteCount: Int
     public let issue: String?
+    public var metadataEditable = false
+    public var canImport: Bool { metadata != nil && issue == nil }
+    public var formatLabel: String { metadata?.format ?? URL(fileURLWithPath: relativePath).pathExtension.uppercased() }
     public var title: String { metadata?.title ?? URL(fileURLWithPath: relativePath).deletingPathExtension().lastPathComponent }
 }
 
 /// A mounted reader's documents directory. No device databases or sidecars are modified.
 public actor ReaderStore {
     public let root: URL
-    private let connection = UUID()
-    private let rootIdentity: String?
-    public init(root: URL) {
+    private let connection: UUID
+    public nonisolated let rootIdentity: String?
+    public init(root: URL, connection: UUID = UUID(), expectedRootIdentity: String? = nil) {
+        self.connection = connection
         self.root = root.standardizedFileURL
-        self.rootIdentity = try? Self.identity(self.root)
+        self.rootIdentity = expectedRootIdentity ?? (try? Self.identity(self.root))
     }
     private static func identity(_ url: URL) throws -> String {
         var info = stat()
@@ -28,17 +32,30 @@ public actor ReaderStore {
         return "\(info.st_dev):\(info.st_ino):\(info.st_birthtimespec.tv_sec):\(info.st_birthtimespec.tv_nsec)"
     }
 
-    public func scan() throws -> [ReaderBook] {
+    private struct Cached: Codable { let fingerprint: String; let book: ReaderBook }
+    public private(set) var cachedCount = 0
+    public func scan(cacheURL: URL? = nil) throws -> [ReaderBook] {
+        cachedCount = 0
+        var cache: [String: Cached] = [:]
+        if let cacheURL, let data = try? Data(contentsOf: cacheURL), data.count < 32 * 1024 * 1024 { cache = (try? JSONDecoder().decode([String: Cached].self, from: data)) ?? [:] }
+        var nextCache: [String: Cached] = [:]
         try validateRoot()
         guard let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey], options: [.skipsHiddenFiles]) else { throw BookError.invalid("Could not read the reader folder.") }
         var books: [ReaderBook] = []
         for case let enumeratedURL as URL in files {
             let url = enumeratedURL.standardizedFileURL
             try Task.checkCancellation()
+            if url.pathExtension.lowercased() == "sdr" { files.skipDescendants(); continue }
             let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
             if values?.isSymbolicLink == true { files.skipDescendants(); continue }
             guard values?.isRegularFile == true, ["epub", "mobi", "azw3", "azw", "prc", "kfx", "pdf"].contains(url.pathExtension.lowercased()) else { continue }
             let relative = String(url.path.dropFirst(root.path.count + 1))
+            var info = stat()
+            let fingerprint = lstat(url.path, &info) == 0 ? "\(rootIdentity ?? ""):\(info.st_ino):\(info.st_size):\(info.st_mtimespec.tv_sec):\(info.st_mtimespec.tv_nsec):\(info.st_ctimespec.tv_sec):\(info.st_ctimespec.tv_nsec)" : ""
+            if !fingerprint.isEmpty, let cached = cache[relative], cached.fingerprint == fingerprint {
+                var book = cached.book; book.connection = connection
+                books.append(book); nextCache[relative] = Cached(fingerprint: fingerprint, book: book); cachedCount += 1; continue
+            }
             let bytes: Data
             do { bytes = try read(relative) }
             catch {
@@ -47,9 +64,20 @@ public actor ReaderStore {
                 continue
             }
             let metadata: BookMetadata?, issue: String?
-            do { metadata = try BookInspector.inspect(url); issue = nil }
-            catch { metadata = nil; issue = error.localizedDescription }
-            books.append(ReaderBook(connection: connection, relativePath: relative, metadata: metadata, hash: Self.digest(bytes), byteCount: bytes.count, issue: issue))
+            do { var value = try BookInspector.inspect(url); value.cover = nil; metadata = value; issue = nil }
+            catch {
+                if var value = try? MOBIBook.inspect(bytes, allowProtected: true) {
+                    value.cover = nil; metadata = value; issue = "Protected MOBI/AZW3: metadata only. Save a file backup if needed; Nova cannot import or edit its content."
+                } else { metadata = nil; issue = url.pathExtension.lowercased() == "kfx" ? "KFX book. Companion resources are grouped out of this list; a single-file backup is not a complete KFX package." : error.localizedDescription }
+            }
+            var book = ReaderBook(connection: connection, relativePath: relative, metadata: metadata, hash: Self.digest(bytes), byteCount: bytes.count, issue: issue)
+            if book.canImport, let metadata = book.metadata, ["MOBI", "AZW3"].contains(metadata.format) { book.metadataEditable = (try? MOBIMetadataEditor.prepare(bytes, metadata: metadata)) != nil }
+            books.append(book)
+            if !fingerprint.isEmpty { nextCache[relative] = Cached(fingerprint: fingerprint, book: book) }
+        }
+        if let cacheURL {
+            try? FileManager.default.createDirectory(at: cacheURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            if let data = try? JSONEncoder().encode(nextCache) { try? data.write(to: cacheURL, options: .atomic) }
         }
         return books.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
@@ -101,18 +129,18 @@ public actor ReaderStore {
             throw BookError.invalid("Could not delete this device file. Refresh and try again.")
         }
     }
-    private func verified(_ book: ReaderBook) throws -> Data {
+    func verified(_ book: ReaderBook) throws -> Data {
         guard book.connection == connection else { throw BookError.invalid("Device selection is stale. Refresh first.") }
         let bytes = try read(book.relativePath)
         guard Self.digest(bytes) == book.hash else { throw BookError.invalid("This device file changed. Refresh the list before continuing.") }
         return bytes
     }
-    private func validateRoot() throws {
+    func validateRoot() throws {
         guard let rootIdentity, try Self.identity(root) == rootIdentity else { throw BookError.invalid("The connected reader changed. Choose its folder again.") }
         guard try root.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else { throw BookError.invalid("Reader disconnected. Reconnect it and refresh.") }
         guard root.resolvingSymlinksInPath().path == root.path else { throw BookError.invalid("Reader folder must not be a symbolic link.") }
     }
-    private func location(_ relative: String) throws -> URL {
+    func location(_ relative: String) throws -> URL {
         try validateRoot()
         guard ZIPArchive.isSafePath(relative) else { throw BookError.invalid("Unsafe reader path.") }
         let url = root.appendingPathComponent(relative).standardizedFileURL
@@ -125,5 +153,5 @@ public actor ReaderStore {
         guard values.isRegularFile == true, let size = values.fileSize, size <= ZIPArchive.maximumSize else { throw BookError.invalid("Device file exceeds the supported size.") }
         return try Data(contentsOf: url)
     }
-    private static func digest(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
+    static func digest(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
 }

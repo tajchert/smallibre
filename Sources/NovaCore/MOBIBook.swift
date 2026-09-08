@@ -1,7 +1,7 @@
 import Foundation
 
 enum MOBIBook {
-    static func inspect(_ data: Data) throws -> BookMetadata {
+    static func inspect(_ data: Data, allowProtected: Bool = false) throws -> BookMetadata {
         guard data.count >= 86, data.subdata(in: 60..<68) == Data("BOOKMOBI".utf8) else { throw BookError.invalid("This file is not a supported EPUB or MOBI book.") }
         let count = Int(data.be16(76))
         guard count > 0, 78 + count * 8 <= data.count else { throw BookError.invalid("Invalid MOBI record table.") }
@@ -9,7 +9,7 @@ enum MOBIBook {
         guard offsets[0] >= 78 + count * 8, zip(offsets, offsets.dropFirst()).allSatisfy({ $0 < $1 }), offsets.allSatisfy({ $0 <= data.count }) else { throw BookError.invalid("Damaged MOBI records.") }
         let record = data.subdata(in: offsets[0]..<offsets[1])
         guard record.count >= 132, record.subdata(in: 16..<20) == Data("MOBI".utf8) else { throw BookError.invalid("Missing MOBI header.") }
-        guard record.be16(12) == 0 else { throw BookError.unsupported("This MOBI is protected. Nova supports DRM-free books.") }
+        guard allowProtected || record.be16(12) == 0 else { throw BookError.unsupported("This MOBI is protected. Nova supports DRM-free books.") }
         let length = Int(record.be32(20)), version = record.be32(36)
         guard length >= 116, 16 + length <= record.count else { throw BookError.invalid("Invalid MOBI header length.") }
         let encoding: String.Encoding = record.be32(28) == 65001 ? .utf8 : .windowsCP1252

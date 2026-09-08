@@ -4,6 +4,8 @@ cd "$(dirname "$0")/.."
 swift build -c release
 app="build/Calibre Nova.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+cp .build/release/NovaReaderHelper "$app/Contents/MacOS/NovaReaderHelper"
+codesign --force --sign - "$app/Contents/MacOS/NovaReaderHelper"
 cp .build/release/CalibreNova "$app/Contents/MacOS/CalibreNova"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 cp LICENSE "$app/Contents/Resources/LICENSE"
