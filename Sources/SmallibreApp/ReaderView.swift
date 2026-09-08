@@ -69,7 +69,7 @@ struct ReaderView: View {
         .onChange(of: reader.generation) { _, _ in deletion = []; selected = []; editing = nil }
         .onChange(of: selected) { _, _ in
             let hash = selection.count == 1 ? selection.first?.hash : nil
-            model.selection = model.books.first { $0.hash == hash }?.id
+            model.selection = reader.libraryBook(deviceHash: hash, library: model.books)?.id
         }
         .task { reader.localRoot = model.root; reader.reloadHistory(); if reader.folder == nil { reader.discover() } }
         .confirmationDialog("Back up and delete \(deletion.count) device copies?", isPresented: Binding(get: { !deletion.isEmpty }, set: { if !$0 { deletion = [] } }), titleVisibility: .visible) {

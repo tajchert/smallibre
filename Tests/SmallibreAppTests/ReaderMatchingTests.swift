@@ -22,16 +22,26 @@ import XCTest
             backup: root.appendingPathComponent("backup.azw3"), date: Date(), state: "intent", transfer: record)
         model.reader.receipts = [receipt]
         XCTAssertNil(model.reader.libraryMatch(book, deviceHash: outputHash.value))
+        XCTAssertNil(model.reader.libraryBook(deviceHash: outputHash.value, library: [book]))
         try record.uploaded(.init(destination: destination, locator: .mounted(relativePath: "book.azw3")))
         record.verified(); receipt.transfer = record; receipt.state = "verified"
         model.reader.receipts = [receipt]
         XCTAssertEqual(model.reader.libraryMatch(book, deviceHash: outputHash.value), .converted)
+        XCTAssertEqual(model.reader.libraryBook(deviceHash: outputHash.value, library: [book])?.id, book.id)
+        XCTAssertEqual(model.reader.libraryBook(deviceHash: book.hash, library: [book])?.id, book.id)
+        XCTAssertNil(model.reader.libraryBook(deviceHash: nil, library: [book]))
+        XCTAssertNil(model.reader.libraryBook(deviceHash: "", library: [book]))
+        var importedAZW3 = book
+        importedAZW3.id = UUID(); importedAZW3.hash = outputHash.value
+        XCTAssertEqual(model.reader.libraryBook(deviceHash: outputHash.value, library: [book, importedAZW3])?.id, importedAZW3.id)
+
         XCTAssertEqual(model.reader.libraryMatch(book, deviceHash: book.hash), .original)
         XCTAssertNil(model.reader.libraryMatch(book, deviceHash: ""))
         XCTAssertNil(model.reader.libraryMatch(book, deviceHash: SHA256Digest.digest(Data("different bytes".utf8)).value))
         var changedOriginal = book
         changedOriginal.hash = SHA256Digest.digest(Data("replacement original".utf8)).value
         XCTAssertNil(model.reader.libraryMatch(changedOriginal, deviceHash: outputHash.value))
+        XCTAssertNil(model.reader.libraryBook(deviceHash: outputHash.value, library: [changedOriginal]))
         var sameTitle = book
         sameTitle.id = UUID()
         XCTAssertNil(model.reader.libraryMatch(sameTitle, deviceHash: outputHash.value))

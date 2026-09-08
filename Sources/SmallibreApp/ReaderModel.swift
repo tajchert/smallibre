@@ -41,6 +41,11 @@ import SmallibreCore
         if hashes.contains(book.hash) { return .original }
         return books.contains { libraryMatch(book, deviceHash: $0.hash) == .converted } ? .converted : nil
     }
+    func libraryBook(deviceHash: String?, library: [LibraryBook]) -> LibraryBook? {
+        guard let deviceHash, !deviceHash.isEmpty else { return nil }
+        return library.first { libraryMatch($0, deviceHash: deviceHash) == .original }
+            ?? library.first { libraryMatch($0, deviceHash: deviceHash) == .converted }
+    }
     func libraryLabel(for item: ReaderBook, library: [LibraryBook]) -> String {
         if library.contains(where: { libraryMatch($0, deviceHash: item.hash) == .original }) { return "In library" }
         return library.contains(where: { libraryMatch($0, deviceHash: item.hash) == .converted }) ? "Converted copy" : "On device"
