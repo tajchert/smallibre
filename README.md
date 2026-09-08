@@ -12,7 +12,7 @@ macOS 14+ · Swift · GPL-3.0 · Early alpha
 
 Smallibre brings your ebook library and your connected reader into one place. Add books, tidy their details, adjust EPUB typography, and manage the books on a mounted Kindle—all through a native Mac interface.
 
-Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **4.7 MB**. No Calibre installation or additional runtime is needed.
+Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **5.9 MB**. No Calibre installation or additional runtime is needed.
 
 > **Early alpha:** useful today, still growing. EPUB-to-Kindle conversion and MTP connections are not available yet. Public builds are not yet Developer ID signed or notarized.
 

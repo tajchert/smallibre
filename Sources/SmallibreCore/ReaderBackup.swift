@@ -10,6 +10,8 @@ public struct ReaderReceipt: Codable, Sendable, Identifiable {
     public let date: Date
     public var state: String
     public var detail: String?
+    /// Absent in legacy mounted-reader receipts.
+    public var transfer: ReaderTransferRecord? = nil
     public func save() throws {
         let url = backup.deletingLastPathComponent().appendingPathComponent("receipt.json")
         try JSONEncoder().encode(self).write(to: url, options: .atomic)

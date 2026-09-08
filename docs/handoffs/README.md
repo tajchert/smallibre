@@ -9,7 +9,7 @@ Baseline: Smallibre at `a5249ce`. Read [AGENTS.md](../../AGENTS.md) first. These
 
 ## Agree on this boundary first
 
-Conversion produces a local immutable `PreparedBookArtifact`; a reader transport consumes it without converting or rereading mutable library settings. Proposed fields: artifact ID, source library ID, source original SHA-256, prepared-input SHA-256, settings digest, converter version/profile, output format, safe suggested filename, local URL, byte count, output SHA-256 and conversion warnings. Store the metadata durably with the artifact. These types do not exist yet.
+Conversion produces a local immutable `PreparedBookArtifact`; a reader transport consumes it without converting or rereading mutable library settings. Proposed fields: artifact ID, source library ID, source original SHA-256, prepared-input SHA-256, settings digest, converter version/profile, output format, safe suggested filename, local URL, byte count, output SHA-256 and conversion warnings. Store the metadata durably with the artifact. The initial types, verification coordinator and fake transport tests now exist; see [contract v1](artifact-transport-contract.md). Durable artifact publication/cache and production adapter integration remain pending.
 
 The conversion developer owns `PreparedBookArtifact`, preparation/cache persistence and output validation. The MTP developer owns `ReaderDestination`, opaque item/session identities, capabilities and transport receipt extensions. Agree on Codable versioning and error/progress contracts before either edits `ReaderProcess.swift`, `ReaderBackup.swift`, `ReaderModel.swift` or `TransferView.swift`; land those shared changes in one small PR.
 
@@ -19,7 +19,7 @@ Keep the original EPUB SHA separate from the converted file SHA. If a book chang
 
 ## Delivery and review
 
-1. Merge the small shared contract and fake transport/artifact fixtures.
+1. Review and merge the initial [shared contract and fake fixtures](artifact-transport-contract.md). The implementation is present; production adapters and C5 persistence are not yet integrated.
 2. Develop both workstreams separately, with local export as the converter's first product and read-only inventory as MTP's first product.
 3. Integrate converted AZW3 transfer over MTP only after each works independently.
 4. Run `swift test`, `bash scripts/build-app.sh`, signature verification and `git diff --check`. Add focused suites for each workstream. Document toolchain, bundle-size delta, peak memory and representative timing; do not invent performance claims.
@@ -28,3 +28,7 @@ Keep the original EPUB SHA separate from the converted file SHA. If a book chang
 Shared final acceptance: import an authored EPUB, edit it, convert once, send through each supported transport, verify returned bytes, open/read it on the device, reconnect, recognize its library provenance and preserve original/backup hashes. Force an unplug during upload and reconcile without silently overwriting, duplicating or deleting unrelated books.
 
 No GitHub issues, repositories or developer assignments have been created by this handoff. Suggested issue IDs below are local task labels.
+
+## Feasibility progress
+
+The [native AZW3 prototype](../architecture/azw3-format-evidence.md) now has independent decoding evidence for an authored fixture. The [native MTP read-only probe](../architecture/mtp-feasibility.md) compiles and has bounded protocol/session tests. Neither milestone has passed its hardware gate. The user reports a Paperwhite with firmware possibly 5.19.6; device generation, exact firmware and connection mode have not been confirmed. Production normalization, artifact persistence and app/transport integration remain pending.

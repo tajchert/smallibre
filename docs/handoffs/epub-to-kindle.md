@@ -6,6 +6,8 @@
 
 Read [shared contracts](README.md) and [native decision](../architecture/native-swift-decision.md). Current `EPUBBook` supplies metadata and spine paths, not a complete conversion document. `MOBIMetadataEditor` rewrites existing metadata; it is not an encoder. A valid MOBI header alone does not prove Kindle readability.
 
+The initial artifact/provenance contract is implemented; see [contract v1](artifact-transport-contract.md). A narrow native C1 prototype now produces an authored standalone KF8 book; see [format evidence](../architecture/azw3-format-evidence.md). Physical Kindle readability remains unverified, so C1 is still open and conversion is not enabled in the app.
+
 ## Proposed code boundaries
 
 Create focused files under `Sources/SmallibreCore/Conversion/`: `PreparedBookArtifact.swift`, `EPUBConversionDocument.swift`, `EPUBConversionNormalizer.swift`, `AZW3Writer.swift`, `AZW3Validator.swift`, `ConversionService.swift`. Split record serialization/indexing into additional files when needed. Add `Tests/SmallibreCoreTests/ConversionTests.swift` and authored fixtures.

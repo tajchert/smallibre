@@ -6,6 +6,8 @@
 
 Read [shared contracts](README.md), [AGENTS.md](../../AGENTS.md) and [reader reliability](../architecture/reader-reliability.md). Existing `ReaderStore` assumes local URLs, inodes and POSIX descriptors. MTP needs object/session identities and protocol operations; it must not pretend to be a filesystem or apply POSIX guarantees to remote objects.
 
+The initial transport identities, verification coordinator and test-only adapter are implemented; see [contract v1](artifact-transport-contract.md). A helper-only native read-only probe is now available; see [MTP feasibility](../architecture/mtp-feasibility.md). M1 hardware/backend selection and M2 mounted-adapter parity remain open; the probe does not provide app-level MTP support.
+
 ## Dependency decision required in M1
 
 The accepted stack currently has no downloaded dependencies. Default investigation: a focused Swift MTP implementation over macOS USB APIs. Compare it against a thin Swift wrapper around pinned native libmtp/libusb. The latter may reduce protocol/quirk work but adds C dependencies, distribution obligations and bundle/build complexity; it is not automatically authorized by this brief. Present measured size, supported operations, licensing notices, packaging and maintainability before adopting it. Do not add Python, Rust, Homebrew runtime requirements, privileged daemons or kernel extensions.

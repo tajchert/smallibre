@@ -3,6 +3,16 @@ import SmallibreCore
 
 @main struct ReaderHelper {
     static func main() async {
+        if CommandLine.arguments.count == 2, CommandLine.arguments[1] == "--mtp-probe" {
+            do {
+                let result = try MTPReadOnlyProbe.run()
+                FileHandle.standardOutput.write(try JSONEncoder().encode(result))
+            } catch {
+                let response = ReaderResponse(error: error.localizedDescription)
+                if let data = try? JSONEncoder().encode(response) { FileHandle.standardOutput.write(data) }
+            }
+            return
+        }
         let response: ReaderResponse
         do {
             guard CommandLine.arguments.count == 2 else { throw BookError.invalid("Missing reader request") }
