@@ -52,6 +52,13 @@ final class AppModel {
         } catch { reader.libraryReady = false; startupFailure = error.localizedDescription }
     }
     var selected: LibraryBook? { books.first { $0.id == selection } }
+    var commandSelection: LibraryBook? {
+        guard filter != "device", let selected, visibleBooks.contains(where: { $0.id == selected.id }) else { return nil }
+        return selected
+    }
+    func prepareSearch(global: Bool) {
+        if global { filter = "all" }
+    }
     var visibleBooks: [LibraryBook] {
         let filtered = books.filter {
             (filter == "all" || (filter == "prepared" ? $0.typography.enabled : $0.metadata.format == filter)) &&

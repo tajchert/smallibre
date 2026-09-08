@@ -40,6 +40,24 @@ Choose **Explore with a sample book**, or drop your own EPUB or MOBI into the wi
 
 The build script creates an app for your Mac’s architecture and signs it locally. It does not create a universal or notarized release. You can also open `Package.swift` in Xcode to work on the project.
 
+## Keyboard shortcuts
+
+Shortcuts are listed in the app’s native menus and apply to the active library window.
+
+| Shortcut | Action |
+| --- | --- |
+| ⌘K | Search all library books, leaving the current filter or reader view |
+| ⌘F | Search the current collection or reader |
+| ⌘1–⌘6 | All Books, Personalized, EPUB, MOBI, Kindle / AZW3, Kindle Reader |
+| ⌘O | Add books |
+| ⌘R | Preview the selected EPUB |
+| ⌘I | Edit the selected book’s details |
+| ⌘E | Export a copy |
+| ⇧⌘F | Show the selected original in Finder |
+| ⇧⌘R | Refresh the connected reader when idle |
+
+Search matches titles and authors. Book commands require a selection visible in the current library collection.
+
 ## Will it work with my reader?
 
 Smallibre currently works with readers that appear as a mounted drive or folder on your Mac. Kindle Paperwhite testing has covered inventory, transfer, download, backup, deletion of a disposable copy, and metadata updates. Reading the test copy was confirmed on the device; other models and books still need testing.

@@ -4,6 +4,7 @@ import SmallibreCore
 struct LibraryView: View {
     @Bindable var model: AppModel
     @State private var dropTarget = false
+    @State private var searchPresented = false
 
     var body: some View {
         NavigationSplitView {
@@ -19,14 +20,18 @@ struct LibraryView: View {
         .tint(SmallibreTheme.accent)
         .toolbar {
             ToolbarItem(placement: .automatic) {
-                Button { model.chooseBooks() } label: { Label("Add books", systemImage: "plus") }.keyboardShortcut("o").disabled(model.importing)
+                Button { model.chooseBooks() } label: { Label("Add books", systemImage: "plus") }.disabled(model.importing)
             }
             ToolbarItem(placement: .automatic) {
                 Menu { Picker("Sort by", selection: $model.sort) { ForEach(AppModel.Sort.allCases, id: \.self) { Text($0.rawValue).tag($0) } } }
                 label: { Label("Sort", systemImage: "arrow.up.arrow.down") }
             }
         }
-        .searchable(text: $model.search, placement: .toolbar, prompt: "Search books or authors")
+        .searchable(text: $model.search, isPresented: $searchPresented, placement: .toolbar, prompt: "Search books or authors")
+        .focusedSceneValue(\.libraryCommands, commandsAvailable ? LibraryCommandContext(model: model) { global in
+            model.prepareSearch(global: global)
+            searchPresented = true
+        } : nil)
         .task { await model.start() }
         .onOpenURL { model.importURLs([$0]) }
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in model.reader.discover() }
@@ -46,6 +51,11 @@ struct LibraryView: View {
             Button("OK") { model.error = nil }
         } message: { Text(model.error ?? "") }
         .frame(minWidth: 920, minHeight: 600)
+    }
+
+    private var commandsAvailable: Bool {
+        model.store != nil && model.editing == nil && model.preview == nil &&
+        model.transferBook == nil && model.metadataBook == nil && model.error == nil
     }
 
     private var sidebar: some View {
