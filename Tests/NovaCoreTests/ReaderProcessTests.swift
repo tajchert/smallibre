@@ -35,3 +35,15 @@ extension ReaderProcessTests {
         XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
     }
 }
+
+extension ReaderProcessTests {
+    func testConcurrentHelperCannotStartUntilPreviousExits() async throws {
+        let task = Task { try await ReaderProcess.run(executable: URL(fileURLWithPath: "/bin/sleep"), arguments: ["10"], timeout: 20) }
+        try await Task.sleep(for: .milliseconds(100))
+        do {
+            _ = try await ReaderProcess.run(executable: URL(fileURLWithPath: "/usr/bin/true"), arguments: [])
+            XCTFail("Second helper must not start")
+        } catch { XCTAssertTrue(error.localizedDescription.contains("previous reader operation")) }
+        task.cancel(); _ = try? await task.value
+    }
+}

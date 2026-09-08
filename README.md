@@ -25,11 +25,14 @@ Open `Package.swift` in Xcode for development. The packaging script creates a lo
 - Preview EPUB chapters in an isolated, network-blocked WebKit view.
 - Search Open Library on demand and review title/author suggestions before applying them.
 - Export verified copies without overwriting existing files, including to a selected mounted reader folder.
-- Browse a mounted Kindle, refresh its inventory, see exact library matches, download supported books and delete selected device files with confirmation.
+- Browse a mounted Kindle with cached refresh, full recheck and exact library matches.
+- Bulk-download supported books, save file backups and delete selected device copies after verified local backup.
+- Edit title/authors/publisher on supported standalone DRM-free MOBI/AZW3 device copies.
+- Cancel or time out reader operations; inspect backups and interrupted-operation history.
 
 ## Deliberate limits
 
-This is the first working increment, not a complete Calibre replacement. **It does not yet convert EPUB to MOBI/AZW3, convert MOBI to EPUB, or access MTP devices.** MOBI/AZW3 exports preserve original bytes; library metadata edits are not embedded in those formats. The reader sheet rejects incompatible formats rather than renaming them. Modern MTP Kindles require a later transport increment.
+This is the first working increment, not a complete Calibre replacement. **It does not yet convert EPUB to MOBI/AZW3, convert MOBI to EPUB, or access MTP devices.** Library MOBI/AZW3 exports preserve original bytes; library metadata edits are not embedded in those exports. The separate Kindle details editor can rewrite supported standalone MOBI/AZW3 device copies after backup. The reader sheet rejects incompatible formats rather than renaming them. Modern MTP Kindles require a later transport increment.
 
 Typography targets ordinary reflowable EPUBs, not fixed-layout books, scripted books or media overlays. Fonts use the device's generic serif/sans-serif families; there is no font embedding/subsetting. SVG covers fall back to a generated jacket. SVG spine chapters cannot be previewed. DRM, ZIP64, multipart archives, ambiguous resource paths and oversized resources are rejected. Limits: 256 MB compressed/expanded book, 64 MB per resource, 8 MB per XML document, 10,000 ZIP entries.
 
@@ -70,3 +73,5 @@ The locally supplied `calibre/` checkout is reference material and is ignored by
 See `docs/architecture/native-swift-decision.md` for the accepted direction and `docs/architecture/verification-0.1.md` for the measured first build.
 
 See `docs/architecture/kindle-management.md` for Kindle management behavior and hardware verification.
+
+See `docs/architecture/reader-reliability.md` for helper isolation, metadata writer limits, backups and the latest hardware tests.

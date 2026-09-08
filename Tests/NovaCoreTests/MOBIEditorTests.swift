@@ -31,5 +31,17 @@ final class MOBIEditorTests: XCTestCase {
         XCTAssertThrowsError(try MOBIMetadataEditor.prepare(data, metadata: metadata))
         XCTAssertEqual(try MOBIBook.inspect(data, allowProtected: true).title, metadata.title)
     }
+    func testHybridMOBIIsRejected() throws {
+        let url = Bundle.module.url(forResource: "minimal", withExtension: "mobi", subdirectory: "Fixtures")!
+        var data = try Data(contentsOf: url)
+        let metadata = try MOBIBook.inspect(data), offset = Int(data.be32(78))
+        let start = offset + 16 + Int(data.be32(offset + 20))
+        let length = Int(data.be32(start + 4)), count = Int(data.be32(start + 8)), title = Int(data.be32(offset + 84))
+        data.insert(contentsOf: big(121) + big(12) + big(1), at: start + 12)
+        data.replaceSubrange(start + 4..<start + 8, with: big(length + 12))
+        data.replaceSubrange(start + 8..<start + 12, with: big(count + 1))
+        data.replaceSubrange(offset + 84..<offset + 88, with: big(title + 12))
+        XCTAssertThrowsError(try MOBIMetadataEditor.prepare(data, metadata: metadata))
+    }
     private func big(_ number: Int) -> [UInt8] { [UInt8((number >> 24) & 255), UInt8((number >> 16) & 255), UInt8((number >> 8) & 255), UInt8(number & 255)] }
 }

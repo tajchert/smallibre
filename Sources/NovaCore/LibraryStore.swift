@@ -94,10 +94,13 @@ public actor LibraryStore {
     }
     public func export(_ id: UUID, to folder: URL) throws -> URL {
         let book = try requireBook(id), data = try preparedData(for: id)
+        return try Self.exportData(data, title: book.metadata.title, format: book.metadata.format, to: folder)
+    }
+    public nonisolated static func exportData(_ data: Data, title bookTitle: String, format: String, to folder: URL) throws -> URL {
         let manager = FileManager.default
         guard try folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else { throw BookError.invalid("Choose an existing export folder.") }
-        let title = Self.safeFilename(book.metadata.title)
-        let ext = book.metadata.format.lowercased()
+        let title = Self.safeFilename(bookTitle)
+        let ext = format.lowercased()
         let staging = folder.appendingPathComponent(".nova-\(UUID().uuidString).tmp")
         defer { try? manager.removeItem(at: staging) }
         try data.write(to: staging, options: .withoutOverwriting)

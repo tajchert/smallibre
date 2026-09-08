@@ -33,6 +33,7 @@ final class AppModel {
         } else {
             root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Calibre Nova", isDirectory: true)
         }
+        reader.localRoot = root
         do { store = try LibraryStore(root: root) } catch { self.error = error.localizedDescription }
     }
     var selected: LibraryBook? { books.first { $0.id == selection } }
@@ -108,6 +109,10 @@ final class AppModel {
             panel.prompt = "Export here"; panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.canCreateDirectories = true
             guard panel.runModal() == .OK, let url = panel.url else { return }
             folder = url
+        }
+        if folder.path.hasPrefix("/Volumes/") {
+            guard !reader.busy else { error = "Wait for the current device operation or cancel it first."; return }
+            reader.send(book, destination: folder, model: self); transferBook = nil; return
         }
         operation = "Preparing \(book.metadata.title)…"
         Task {

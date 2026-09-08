@@ -1,5 +1,7 @@
 # Mounted Kindle management
 
+This document records the first increment. See [reader-reliability.md](reader-reliability.md) for the current helper, caching, bulk actions, backups and metadata editing.
+
 The Kindle sidebar provides a refreshed inventory of supported ebook file extensions under a mounted documents folder. Nova automatically locates a single `/Volumes/Kindle*` volume, also accepts a user-selected folder, and observes mount/unmount notifications. Scanning happens off the main actor. The initial scan hashes file contents; it is not yet cached or incremental.
 
 ReaderStore owns device reads, download verification and guarded deletion. ReaderModel owns the UI snapshot and serializes device operations. LibraryStore remains the sole writer of the Mac library. SHA-256 matches drive “In library” and “On Kindle” indicators; titles are not used to infer identity. Converted/edited editions can appear separately. This is inventory synchronization with explicit actions, not automatic mirroring or deletion.
