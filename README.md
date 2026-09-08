@@ -40,9 +40,19 @@ Adjust book details, body typography, line spacing, and margins.
 
 *Captured from the macOS app using a disposable library of authored demo books.*
 
-## Try it
+## Install
 
-For now, build Smallibre locally. You need a Mac running macOS 14 or later and an Xcode toolchain with Swift 6.
+Requires **Apple Silicon and macOS 14 or later**:
+
+```sh
+brew install --cask tajchert/tap/smallibre
+```
+
+Or download the app from [GitHub Releases](https://github.com/tajchert/smallibre/releases). This early-alpha build is not notarized. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway** after reviewing the app ([Apple’s guidance](https://support.apple.com/en-us/102445)).
+
+## Build from source
+
+You need macOS 14 or later and an Xcode toolchain with Swift 6.
 
 From the project folder:
 
