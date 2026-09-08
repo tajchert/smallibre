@@ -41,6 +41,7 @@ struct LibraryView: View {
         .overlay { if dropTarget { RoundedRectangle(cornerRadius: 12).stroke(SmallibreTheme.accent, style: StrokeStyle(lineWidth: 3, dash: [8])).padding(8).allowsHitTesting(false) } }
         .sheet(item: $model.editing) { book in EditBookView(model: model, book: book) }
         .sheet(item: $model.preview) { PreviewView(content: $0) }
+        .sheet(item: $model.kindleExportBook) { book in TransferView(model: model, book: book, localExport: true) }
         .sheet(item: $model.transferBook) { book in TransferView(model: model, book: book) }
         .sheet(item: $model.metadataBook) { book in MetadataView(model: model, book: book) }
         .alert("Couldn’t complete the operation", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
@@ -110,7 +111,7 @@ struct LibraryView: View {
                                         .background(model.selection == book.id ? SmallibreTheme.accent.opacity(0.1) : .clear, in: .rect(cornerRadius: 8))
                                         .overlay { RoundedRectangle(cornerRadius: 8).stroke(model.selection == book.id ? SmallibreTheme.accent.opacity(0.6) : .clear, lineWidth: 1.5) }
                                     Text(book.metadata.title).font(.system(size: 12, weight: .medium)).lineLimit(2).foregroundStyle(.primary)
-                                    if model.reader.hashes.contains(book.hash) { Label("On Kindle", systemImage: "externaldrive").font(.system(size: 10)).foregroundStyle(SmallibreTheme.accent) }
+                                    if let match = model.reader.deviceMatch(book) { Label(match == .original ? "On Kindle" : "Kindle copy on device", systemImage: "externaldrive").font(.system(size: 10)).foregroundStyle(SmallibreTheme.accent) }
                                     Text(book.metadata.authors.isEmpty ? "Unknown author" : book.metadata.authors.joined(separator: ", ")).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                                     HStack(spacing: 6) { Text(book.metadata.format).font(.system(size: 8, weight: .semibold)).tracking(0.8); if book.typography.enabled { Image(systemName: "slider.horizontal.3").font(.system(size: 9)) } }.foregroundStyle(.secondary)
                                 }.contentShape(Rectangle())

@@ -53,6 +53,40 @@ extension ReaderStore {
         }
         return receipt.backup
     }
+    public func sendArtifact(_ artifact: PreparedBookArtifact, localRoot: URL) async throws -> URL {
+        try validateRoot()
+        let local = localRoot.standardizedFileURL.resolvingSymlinksInPath()
+        guard local.isFileURL, local.path != root.path, !local.path.hasPrefix(root.path + "/") else {
+            throw BookError.invalid("Prepared artifacts and receipts must be stored on the Mac.")
+        }
+        try artifact.requireStored(in: localRoot)
+        let bytes = try artifact.verifiedData()
+        try AZW3Converter.validate(bytes)
+        guard let rootIdentity else { throw ReaderTransportError.staleSelection }
+        let destination = ReaderDestination(connection: connection, endpoint: .mounted(root: root, rootIdentity: rootIdentity))
+        let transport = try MountedReaderTransport(destination: destination)
+        let directory = local.appendingPathComponent("reader-backups/" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        guard directory.resolvingSymlinksInPath().path == directory.path else {
+            throw BookError.invalid("Receipt storage must not use symbolic links.")
+        }
+        let backup = directory.appendingPathComponent("prepared-book.azw3")
+        try bytes.write(to: backup, options: .withoutOverwriting)
+        let handle = try FileHandle(forWritingTo: backup)
+        try handle.synchronize(); try handle.close()
+        _ = try PreparedBookArtifact.readVerified(backup, byteCount: artifact.byteCount, sha256: artifact.outputSHA256)
+        let date = Date()
+        let record = try await ReaderArtifactTransfer.send(artifact, to: destination, using: transport,
+            readbackDirectory: directory, persist: { record in
+                var receipt = ReaderReceipt(id: record.id, operation: "sendArtifact", source: artifact.localURL.path,
+                    sourceHash: artifact.outputSHA256.value, backup: backup,
+                    date: date, state: record.state.rawValue, detail: record.detail)
+                receipt.transfer = record
+                try receipt.save()
+            })
+        guard case let .mounted(relativePath) = record.itemID?.locator else { throw ReaderTransportError.invalidResponse }
+        return root.appendingPathComponent(relativePath)
+    }
     public func send(_ sourceID: UUID, library: LibraryStore, localRoot: URL) async throws -> URL {
         try await send(sourceID, library: library, localRoot: localRoot, beforeExport: {})
     }

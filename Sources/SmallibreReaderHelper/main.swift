@@ -30,6 +30,9 @@ import SmallibreCore
             case "send":
                 guard let id = request.libraryBookID else { throw BookError.invalid("Missing library book") }
                 response = ReaderResponse(file: try await store.send(id, library: LibraryStore(root: request.localRoot), localRoot: request.localRoot))
+            case "sendArtifact":
+                guard let artifact = request.preparedArtifact else { throw BookError.invalid("Missing prepared artifact") }
+                response = ReaderResponse(file: try await store.sendArtifact(artifact, localRoot: request.localRoot))
             case "metadata":
                 guard let book = request.book, let metadata = request.metadata else { throw BookError.invalid("Missing metadata") }
                 response = ReaderResponse(file: try await store.updateMetadata(book, metadata: metadata, localRoot: request.localRoot))

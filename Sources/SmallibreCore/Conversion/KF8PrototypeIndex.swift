@@ -1,15 +1,16 @@
 import Foundation
 
-/// Small single-record INDX encoder for the bounded C1 profile. Record rollover belongs to C4.
+/// Bounded single-record INDX encoder; oversized index records are rejected.
 enum KF8PrototypeIndex {
     struct Entry { let label: String; let control: UInt8; let values: [Int] }
     static func records(tags: [[UInt8]], entries: [Entry], strings: Data = Data()) throws -> [Data] {
-        guard !entries.isEmpty, entries.count <= 64, strings.count < 60_000 else { throw BookError.unsupported("Prototype index limit exceeded.") }
+        guard !entries.isEmpty, entries.count <= 512, strings.count < 60_000 else { throw BookError.unsupported("Prototype index limit exceeded.") }
         var block = Data(repeating: 0, count: 192), offsets: [Int] = []
         block.replaceSubrange(0..<4, with: Data("INDX".utf8))
         try set32(&block, 4, 192); try set32(&block, 12, 1)
         try set32(&block, 24, entries.count); try set32(&block, 28, Int(UInt32.max)); try set32(&block, 32, Int(UInt32.max))
         for entry in entries {
+            try Task.checkCancellation()
             let label = Data(entry.label.utf8)
             guard label.count <= 255 else { throw BookError.invalid("Prototype index label too long.") }
             offsets.append(block.count); block.append(UInt8(label.count)); block.append(label); block.append(entry.control)

@@ -46,7 +46,7 @@ codesign --verify --strict build/Smallibre.app
 git diff --check
 ```
 
-`swift test` builds the app/helper and tests. Four external-file/hardware tests skip unless opted in. The rename baseline was 45 tests: 41 passed, 4 skipped. Test counts are historical, not a hard-coded requirement. Use a focused `swift test --filter TestClassName` while iterating, then the relevant full suite for code changes. Documentation-only work needs link/content checks, not a new app build.
+`swift test` builds the app/helper and tests. External-file/hardware tests skip unless opted in. The rename baseline was 45 tests: 41 passed, 4 skipped. Test counts are historical, not a hard-coded requirement. Use a focused `swift test --filter TestClassName` while iterating, then the relevant full suite for code changes. Documentation-only work needs link/content checks, not a new app build.
 
 Packaging produces `build/Smallibre.app` for the host architecture, including `SmallibreReaderHelper`, icon, license and sample book. Signing is ad hoc: do not claim Developer ID signing, notarization, universal architecture support or a validated public release. CI currently uses `macos-latest`; it does not certify the minimum supported OS.
 
@@ -65,6 +65,7 @@ External tests are explicit opt-ins; read their source before enabling:
 - `SMALLIBRE_TEST_READER_SCAN`: device inventory scan.
 - `SMALLIBRE_TEST_READER_BOOK` and `SMALLIBRE_TEST_READER_FOLDER`: mounted-reader transfer; writes a new copy.
 - `SMALLIBRE_HARDWARE_DEVICE`, `SMALLIBRE_HARDWARE_SOURCE`, `SMALLIBRE_HARDWARE_LOCAL`: creates, edits and deletes a disposable device copy, with local backups.
+- `SMALLIBRE_TEST_KINDLE_WORKFLOW` and `SMALLIBRE_TEST_KINDLE_WORKFLOW_LOCAL`: imports and personalizes the authored sample, prepares AZW3, transfers one new copy through the helper and verifies all existing books are preserved. Leaves the test book for manual reading.
 
 Use temporary fixture folders by default. Real device writes require user authorization for that workflow; preserve existing books. Never commit personal ebooks, libraries, receipts, device dumps, signing material or generated builds. Use authored/minimal fixtures for regression coverage. Keep file mutation, disconnection and malformed-input tests meaningful; don't replace them with tests that merely mirror implementation.
 
@@ -72,4 +73,4 @@ Use temporary fixture folders by default. Real device writes require user author
 
 Keep changes focused, inspect existing work before editing, and commit completed increments when requested. Do not push, publish or rewrite Git history without authorization. Match the existing actor/Sendable boundaries; keep expensive work away from the main actor. Explain behavioral changes and validation in the final handoff.
 
-The Swift package and bundles are named Smallibre; a developer's checkout folder may still use the old name. Do not hard-code local paths. Update README claims when capabilities change. Converter implementation, MTP, automatic mirroring, one-click restore and 10k-book performance are not currently delivered.
+The Swift package and bundles are named Smallibre; a developer's checkout folder may still use the old name. Do not hard-code local paths. Update README claims when capabilities change. Native bounded EPUB-to-AZW3 conversion, immutable artifact storage and mounted-Kindle export/send are implemented. See docs/architecture/epub-kindle-workflow.md for support limits. MTP transfers, automatic mirroring, one-click restore and 10k-book performance are not currently delivered.

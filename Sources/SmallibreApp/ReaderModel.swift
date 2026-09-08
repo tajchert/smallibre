@@ -23,6 +23,27 @@ import SmallibreCore
     var localRoot: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Smallibre")
     var helper: URL { Bundle.main.executableURL!.deletingLastPathComponent().appendingPathComponent("SmallibreReaderHelper") }
     var hashes: Set<String> { Set(books.map(\.hash).filter { !$0.isEmpty }) }
+    enum LibraryMatch: Equatable { case original, converted }
+    /// Display-only provenance association; device mutations still use scanned identities and hashes.
+    func libraryMatch(_ book: LibraryBook, deviceHash: String) -> LibraryMatch? {
+        guard !deviceHash.isEmpty else { return nil }
+        if book.hash == deviceHash { return .original }
+        return receipts.contains { receipt in
+            guard let transfer = receipt.transfer, transfer.state == .verified else { return false }
+            let artifact = transfer.artifact
+            return artifact.outputSHA256.value == deviceHash &&
+                artifact.provenance.sourceLibraryID == book.id &&
+                artifact.provenance.sourceOriginalSHA256.value == book.hash
+        } ? .converted : nil
+    }
+    func deviceMatch(_ book: LibraryBook) -> LibraryMatch? {
+        if hashes.contains(book.hash) { return .original }
+        return books.contains { libraryMatch(book, deviceHash: $0.hash) == .converted } ? .converted : nil
+    }
+    func libraryLabel(for item: ReaderBook, library: [LibraryBook]) -> String {
+        if library.contains(where: { libraryMatch($0, deviceHash: item.hash) == .original }) { return "In library" }
+        return library.contains(where: { libraryMatch($0, deviceHash: item.hash) == .converted }) ? "Converted copy" : "On device"
+    }
     init(notificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter) {
         notificationCenter.publisher(for: NSWorkspace.didMountNotification)
             .receive(on: DispatchQueue.main)
@@ -151,18 +172,23 @@ import SmallibreCore
             if action == "metadata", done > 0 { finish(token); refresh(full: true) }
         }
     }
-    func send(_ book: LibraryBook, destination: URL, model: AppModel) {
+    func send(_ book: LibraryBook, destination: URL, model: AppModel, artifact: PreparedBookArtifact? = nil) {
         guard libraryReady, !sleeping, !busy else { return }
         guard !needsRefreshAfterSleep else {
             error = "Refresh or reconnect the reader after sleep before sending. Check Backups & history before retrying an interrupted write."
             model.error = error; return
         }
+        if let artifact, artifact.provenance.sourceLibraryID != book.id {
+            model.error = "The prepared Kindle copy belongs to a different book."; return
+        }
         localRoot = model.root
         let token = begin("Sending and verifying book…")
-        let request = ReaderRequest(action: "send", root: destination, connection: UUID(), rootIdentity: nil, localRoot: localRoot, libraryBookID: book.id)
+        let request = ReaderRequest(action: artifact == nil ? "send" : "sendArtifact", root: destination, connection: UUID(), rootIdentity: nil, localRoot: localRoot, libraryBookID: book.id, preparedArtifact: artifact)
         task = Task {
             defer { finish(token) }
             do {
+                try Task.checkCancellation()
+                guard operationID == token else { return }
                 let result = try await ReaderClient.perform(request, executable: helper, timeout: 60)
                 guard operationID == token else { return }
                 status = "Sent and verified · \(result.file?.lastPathComponent ?? book.metadata.title)"

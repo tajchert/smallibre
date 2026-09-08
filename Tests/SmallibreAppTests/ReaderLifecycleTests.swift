@@ -83,3 +83,30 @@ extension ReaderLifecycleTests {
         reader.systemWillSleep()
     }
 }
+
+extension ReaderLifecycleTests {
+    func testSendIsBlockedAfterSleepAndCancellationBeforeLaunch() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = AppModel(rootOverride: root)
+        let fixture = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("Tests/SmallibreCoreTests/Fixtures/Small Hours.epub")
+        let book = try await XCTUnwrap(model.store).importBook(from: fixture).book
+        let destination = root.appendingPathComponent("untouched-reader")
+        model.reader.folder = destination
+        model.reader.systemWillSleep()
+        model.reader.systemDidWake()
+        model.reader.send(book, destination: destination, model: model)
+        XCTAssertFalse(model.reader.busy)
+        XCTAssertTrue(model.error?.contains("after sleep") == true)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
+
+        let fresh = AppModel(rootOverride: root)
+        fresh.reader.send(book, destination: destination, model: fresh)
+        XCTAssertTrue(fresh.reader.busy)
+        fresh.reader.cancel()
+        await Task.yield()
+        XCTAssertFalse(fresh.reader.busy)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
+    }
+}

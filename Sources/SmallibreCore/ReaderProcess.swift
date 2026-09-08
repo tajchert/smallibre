@@ -88,10 +88,11 @@ public struct ReaderRequest: Codable, Sendable {
     public var localRoot: URL
     public var metadata: BookMetadata?
     public var libraryBookID: UUID?
+    public var preparedArtifact: PreparedBookArtifact?
     public var fullScan: Bool
-    public init(action: String, root: URL, connection: UUID, rootIdentity: String?, book: ReaderBook? = nil, localRoot: URL, metadata: BookMetadata? = nil, fullScan: Bool = false, libraryBookID: UUID? = nil) {
+    public init(action: String, root: URL, connection: UUID, rootIdentity: String?, book: ReaderBook? = nil, localRoot: URL, metadata: BookMetadata? = nil, fullScan: Bool = false, libraryBookID: UUID? = nil, preparedArtifact: PreparedBookArtifact? = nil) {
         self.action = action; self.root = root; self.connection = connection; self.rootIdentity = rootIdentity
-        self.libraryBookID = libraryBookID; self.book = book; self.localRoot = localRoot; self.metadata = metadata; self.fullScan = fullScan
+        self.preparedArtifact = preparedArtifact; self.libraryBookID = libraryBookID; self.book = book; self.localRoot = localRoot; self.metadata = metadata; self.fullScan = fullScan
     }
 }
 public struct ReaderResponse: Codable, Sendable {

@@ -1,17 +1,19 @@
 import Foundation
 import CryptoKit
 
-/// Isolated C1 serializer, not enabled in export/send UI. Uncompressed standalone KF8, one bounded
-/// fragment per chapter. Format evidence and missing hardware proof are documented separately.
+/// Native uncompressed standalone KF8 serializer, retaining the original hardware proof mode.
+/// One bounded fragment per chapter; text records split on UTF-8 boundaries.
 enum AZW3PrototypeWriter {
-    static func convert(_ epub: Data) throws -> Data {
-        let document = try AZW3PrototypeDocument(epub)
+    static func convert(_ epub: Data, production: Bool = false) throws -> Data {
+        let document = try AZW3PrototypeDocument(epub, production: production)
         var text = Data(), starts: [Int] = [], skeletonLengths: [Int] = [], insertions: [Int] = []
         var fragmentLengths: [Int] = []
         for (index, chapter) in document.chapters.enumerated() {
             try Task.checkCancellation()
-            let prefix = Data(("<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>" + AZW3PrototypeDocument.escape(chapter.title) + "</title></head><body aid=\"B\(index)\">").utf8)
+            let html = "<html xmlns=\"http://www.w3.org/1999/xhtml\"" + (production ? " xmlns:epub=\"http://www.idpf.org/2007/ops\"" : "") + chapter.rootAttributes + ">"
+            let prefix = Data((html + "<head><title>" + AZW3PrototypeDocument.escape(chapter.title) + "</title>" + (chapter.styles.isEmpty ? "" : "<style>" + AZW3PrototypeDocument.escape(chapter.styles) + "</style>") + "</head><body aid=\"B\(index)\"" + chapter.bodyAttributes + ">").utf8)
             let suffix = Data("</body></html>".utf8), fragment = Data(chapter.body.utf8)
+            guard text.count + prefix.count + suffix.count + fragment.count <= 24 * 1024 * 1024 else { throw BookError.unsupported("Normalized AZW3 text and styles exceed 24 MB.") }
             starts.append(text.count); insertions.append(text.count + prefix.count)
             skeletonLengths.append(prefix.count + suffix.count); fragmentLengths.append(fragment.count)
             text.append(prefix); text.append(suffix); text.append(fragment)
@@ -19,6 +21,7 @@ enum AZW3PrototypeWriter {
         var records = [Data()], position = 0
         // Keep every record individually valid UTF-8 without overlap trailers; flags declare no trailers.
         while position < text.count {
+            try Task.checkCancellation()
             var end = min(position + 4096, text.count)
             while end < text.count, text[end] & 0xc0 == 0x80 { end -= 1 }
             records.append(text.subdata(in: position..<end)); position = end
@@ -26,6 +29,7 @@ enum AZW3PrototypeWriter {
         let textCount = records.count - 1
         var selectors = Data(), chunkEntries: [KF8PrototypeIndex.Entry] = []
         for index in document.chapters.indices {
+            try Task.checkCancellation()
             let offset = selectors.count
             // P selects the parent containing this fragment; it is not the file ordinal.
             let selector = Data("P-//*[@aid='B\(index)']".utf8)
@@ -47,11 +51,13 @@ enum AZW3PrototypeWriter {
         guard zip(offsets, offsets.dropFirst()).allSatisfy({ $0 <= $1 }) else {
             throw BookError.unsupported("The prototype requires navigation in reading order.")
         }
+        let navigationWidth = max(2, String(document.navigation.count - 1, radix: 16).count)
         for (index, nav) in document.navigation.enumerated() {
+            try Task.checkCancellation()
             let labelOffset = labels.count, label = Data(nav.title.utf8)
             labels.append(try KF8PrototypeIndex.variable(label.count)); labels.append(label)
             let next = index + 1 < offsets.count ? offsets[index + 1] : text.count
-            navEntries.append(.init(label: String(format: "%02X", index), control: 143,
+            navEntries.append(.init(label: String(format: "%0*X", navigationWidth, index), control: 143,
                                     values: [offsets[index], next - offsets[index], labelOffset, 0, nav.chapter, nav.offset]))
         }
         records += try KF8PrototypeIndex.records(tags: [[1,1,1,0], [2,1,2,0], [3,1,4,0], [4,1,8,0], [21,1,16,0], [22,1,32,0], [23,1,64,0], [6,2,128,0]], entries: navEntries, strings: labels)
@@ -75,9 +81,10 @@ enum AZW3PrototypeWriter {
         var exthFields: [(Int, Data)] = document.metadata.authors.map { (100, Data($0.utf8)) }
         exthFields += [(503,Data(document.metadata.title.utf8)), (524,Data(document.metadata.language.utf8)),
                        (501,Data("PDOC".utf8)), (112,Data(("smallibre:" + SHA256Digest.digest(epub).value).utf8)),
-                       (113,Data(documentIdentifier(epub).utf8)),
+                       (113,Data(documentIdentifier(epub, production: production).utf8)),
                        (116,try KF8PrototypeIndex.word(insertions[0])), (125,try KF8PrototypeIndex.word(document.resources.count))]
         if !document.metadata.publisher.isEmpty { exthFields.append((101,Data(document.metadata.publisher.utf8))) }
+        if let cover = document.coverIndex { exthFields.append((201, try KF8PrototypeIndex.word(cover))) }
         var fields = Data()
         for (tag, value) in exthFields {
             guard value.count <= 16 * 1024 else { throw BookError.unsupported("Prototype metadata is too large.") }
@@ -120,12 +127,13 @@ enum AZW3PrototypeWriter {
         return output
     }
 
-    /// UUIDv5 in the URL namespace, named by the prototype profile and prepared EPUB SHA-256.
+    /// UUIDv5 in the URL namespace, named by the conversion profile and prepared EPUB SHA-256.
     /// SHA-1 is used only by the UUIDv5 naming algorithm, never for integrity verification.
     /// A stable ID keeps repeated conversions deterministic; changed input gets a new identity.
-    private static func documentIdentifier(_ epub: Data) -> String {
+    private static func documentIdentifier(_ epub: Data, production: Bool) -> String {
         var name = Data([0x6b,0xa7,0xb8,0x11,0x9d,0xad,0x11,0xd1,0x80,0xb4,0x00,0xc0,0x4f,0xd4,0x30,0xc8])
-        name.append(Data(("urn:smallibre:azw3:prototype:v1:sha256:" + SHA256Digest.digest(epub).value).utf8))
+        let profile = production ? AZW3Converter.profile + ":" + AZW3Converter.version : "prototype:v1"
+        name.append(Data(("urn:smallibre:azw3:" + profile + ":sha256:" + SHA256Digest.digest(epub).value).utf8))
         var bytes = Array(Insecure.SHA1.hash(data: name).prefix(16))
         bytes[6] = (bytes[6] & 0x0f) | 0x50
         bytes[8] = (bytes[8] & 0x3f) | 0x80

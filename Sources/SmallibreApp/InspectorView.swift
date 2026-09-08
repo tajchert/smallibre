@@ -34,6 +34,9 @@ struct InspectorView: View {
                         Divider()
                         VStack(spacing: 9) {
                             Button { model.transferBook = book } label: { Label("Send to reader…", systemImage: "externaldrive").frame(maxWidth: .infinity) }.controlSize(.large).disabled(model.operation != nil)
+                            if book.metadata.format == "EPUB" {
+                                Button("Export Kindle AZW3…") { model.kindleExportBook = book }.disabled(model.operation != nil)
+                            }
                             Button { model.export(book) } label: { Label("Export a copy…", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity) }.controlSize(.large).disabled(model.operation != nil)
                         }
                         Label("Your original stays untouched", systemImage: "checkmark.shield").font(.system(size: 10)).foregroundStyle(.secondary).frame(maxWidth: .infinity)

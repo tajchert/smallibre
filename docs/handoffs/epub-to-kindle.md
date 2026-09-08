@@ -6,7 +6,7 @@
 
 Read [shared contracts](README.md) and [native decision](../architecture/native-swift-decision.md). Current `EPUBBook` supplies metadata and spine paths, not a complete conversion document. `MOBIMetadataEditor` rewrites existing metadata; it is not an encoder. A valid MOBI header alone does not prove Kindle readability.
 
-The initial artifact/provenance contract is implemented; see [contract v1](artifact-transport-contract.md). A narrow native C1 prototype produces an authored standalone KF8 book; see [format evidence](../architecture/azw3-format-evidence.md). Hardware testing on Paperwhite 11th generation, firmware 5.19.2 found and isolated two compatibility defects: fragment selectors affected layout, and missing EXTH 113 UUID affected Library navigation. The selector correction and UUID-bearing native probes worked on hardware. Both corrections are now in the writer; the exact final generated artifact awaits a final hardware check. Production conversion is not enabled in the app.
+The initial artifact/provenance contract is implemented; see [contract v1](artifact-transport-contract.md). A narrow native C1 prototype produces an authored standalone KF8 book; see [format evidence](../architecture/azw3-format-evidence.md). Hardware testing on Paperwhite 11th generation, firmware 5.19.2 found and isolated two compatibility defects: fragment selectors affected layout, and missing EXTH 113 UUID affected Library navigation. The selector correction and UUID-bearing native probes worked on hardware. Both corrections are now in the writer; the exact final generated artifact awaits a final hardware check. The bounded conversion workflow is now enabled in current source; see [implemented workflow and limits](../architecture/epub-kindle-workflow.md). The milestones below retain broader acceptance criteria that are not all satisfied by this increment.
 
 ## Proposed code boundaries
 
@@ -37,7 +37,7 @@ Integrate snapshot preparation with `LibraryStore.swift` / `EPUBEditor.swift`; p
 
 ### C3 — Normalize supported content and typography
 
-- [ ] Snapshot current library metadata and `TypographySettings` into a prepared EPUB before conversion. Do not reuse the preview sanitizer as a lossless conversion engine.
+- [x] Snapshot current library metadata and `TypographySettings` into a prepared EPUB before conversion. Do not reuse the preview sanitizer as a lossless conversion engine.
 - [ ] Support headings, paragraphs, emphasis, lists, basic tables, page breaks, raster images and internal/footnote links. Normalize CSS with a documented supported subset; preserve generic font choice, line spacing and margins where supported.
 - [ ] Bound image dimensions, decoded pixel memory, CSS recursion/imports and output size. Never fetch remote resources. Define explicit rejection/warning behavior for SVG, MathML, remote images and unsupported CSS; no silent removal of meaningful content.
 - [ ] Add assertions for semantic preservation and navigation destinations, plus visual checks on sample pages.
@@ -55,7 +55,7 @@ Integrate snapshot preparation with `LibraryStore.swift` / `EPUBEditor.swift`; p
 
 ### C5 — Artifacts, provenance and cancellation
 
-- [ ] Implement the shared artifact contract. Cache key includes prepared input bytes/settings, output profile and converter version; prevent stale reuse after edits.
+- [x] Implement the shared artifact contract. Cache key includes prepared input bytes/settings, output profile and converter version; prevent stale reuse after edits.
 - [ ] Write to a private staging file, validate, hash, then publish atomically to local artifact storage. Bound concurrent conversions, memory and disk consumption. Check cancellation between stages and within long loops.
 - [ ] Persist source-to-output provenance and migrate the database additively. Preserve originals and old reader receipts. Test restart, failed disk writes, stale cache, cancellation and editing while conversion is running.
 
@@ -63,8 +63,8 @@ Integrate snapshot preparation with `LibraryStore.swift` / `EPUBEditor.swift`; p
 
 ### C6 — Local export and reader integration
 
-- [ ] Add local AZW3 export and an explicit conversion step in Send to Kindle. Show preparation/conversion/verification/transfer progress and readable errors.
-- [ ] Transfer only the captured artifact; back up those exact bytes, verify readback and record output hash and source provenance. Preserve no-overwrite behavior.
+- [x] Add local AZW3 export and an explicit conversion step in Send to Kindle. Show preparation/conversion/verification/transfer progress and readable errors.
+- [x] Transfer only the captured artifact; back up those exact bytes, verify readback and record output hash and source provenance. Preserve no-overwrite behavior.
 - [ ] Test without MTP using a temporary mounted folder. Then certify physical Kindle opening, cover within the book, chapter navigation, footnotes, Unicode and reader font adjustment. Library thumbnail display is firmware-dependent and must be reported separately.
 - [ ] Update README support matrix and publish compatibility/size/timing evidence. A proposed performance benchmark is a 5 MB prose EPUB and a 50 MB image-heavy EPUB on an identified Mac; set release thresholds from C1 measurements rather than promising arbitrary speeds.
 

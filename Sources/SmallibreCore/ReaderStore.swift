@@ -19,7 +19,7 @@ public struct ReaderBook: Identifiable, Codable, Sendable {
 /// A mounted reader's documents directory. No device databases or sidecars are modified.
 public actor ReaderStore {
     public let root: URL
-    private let connection: UUID
+    let connection: UUID
     public nonisolated let rootIdentity: String?
     public init(root: URL, connection: UUID = UUID(), expectedRootIdentity: String? = nil) {
         self.connection = connection

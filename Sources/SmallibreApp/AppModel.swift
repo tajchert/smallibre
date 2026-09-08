@@ -21,6 +21,7 @@ final class AppModel {
     var preview: PreviewContent?
     var editing: LibraryBook?
     var transferBook: LibraryBook?
+    var kindleExportBook: LibraryBook?
     var metadataBook: LibraryBook?
     let metadataLookup = MetadataLookup()
     var importTask: Task<Void, Never>?
@@ -77,6 +78,7 @@ final class AppModel {
     }
     func start() async {
         await reload()
+        reader.reloadHistory()
         let args = ProcessInfo.processInfo.arguments
         if let index = args.firstIndex(of: "--import"), args.indices.contains(index + 1) { importURLs([URL(fileURLWithPath: args[index + 1])]) }
     }
@@ -145,6 +147,27 @@ final class AppModel {
                 status = "Exported and verified · \(url.lastPathComponent)"
                 if let device = reader.folder, folder.path.hasPrefix(device.path) { reader.refresh() }
                 transferBook = nil
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+    func exportKindle(_ artifact: PreparedBookArtifact, book: LibraryBook, to folder: URL) {
+        guard let store, operation == nil else { return }
+        error = nil
+        if folder.path.hasPrefix("/Volumes/") {
+            guard !reader.busy else { error = "Wait for the current device operation or cancel it first."; return }
+            reader.send(book, destination: folder, model: self, artifact: artifact)
+            if reader.busy { kindleExportBook = nil }
+            return
+        }
+        operation = "Exporting Kindle copy…"
+        Task {
+            let access = folder.startAccessingSecurityScopedResource()
+            defer { if access { folder.stopAccessingSecurityScopedResource() }; operation = nil }
+            do {
+                let url = try await store.exportKindleArtifact(artifact, to: folder)
+                status = "Exported and verified · \(url.lastPathComponent)"
+                kindleExportBook = nil
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             } catch { self.error = error.localizedDescription }
         }

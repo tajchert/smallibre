@@ -39,7 +39,7 @@ struct ReaderView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text(model.books.contains { $0.hash == item.hash } ? "In library" : "On device")
+                            Text(reader.libraryLabel(for: item, library: model.books))
                             Text(item.formatLabel)
                         }.font(.caption).foregroundStyle(.secondary)
                     }.padding(.vertical, 5).tag(item.id)
@@ -71,7 +71,7 @@ struct ReaderView: View {
             let hash = selection.count == 1 ? selection.first?.hash : nil
             model.selection = model.books.first { $0.hash == hash }?.id
         }
-        .task { reader.localRoot = model.root; if reader.folder == nil { reader.discover() } }
+        .task { reader.localRoot = model.root; reader.reloadHistory(); if reader.folder == nil { reader.discover() } }
         .confirmationDialog("Back up and delete \(deletion.count) device copies?", isPresented: Binding(get: { !deletion.isEmpty }, set: { if !$0 { deletion = [] } }), titleVisibility: .visible) {
             Button("Back up & delete", role: .destructive) { reader.run("delete", books: deletion, model: model); deletion = [] }
             Button("Cancel", role: .cancel) { deletion = [] }
@@ -118,8 +118,8 @@ private struct ReaderHistoryView: View {
             Text("Unfinished operations need review: refresh Kindle before retrying. A timeout can happen after a write completes. Backups are ordinary files you can import or copy back to the reader.").font(.callout).foregroundStyle(.secondary)
             List(reader.receipts) { receipt in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("\(receipt.operation.capitalized) · \(receipt.source)").lineLimit(2)
-                    Text("\(receipt.state == "completed" ? "Completed" : "Needs review") · \(receipt.date.formatted())").font(.caption).foregroundStyle(.secondary)
+                    Text("\(receipt.transfer == nil ? receipt.operation.capitalized : "Send Kindle copy") · \(receipt.transfer?.artifact.suggestedFilename ?? receipt.source)").lineLimit(2)
+                    Text("\((receipt.state == "completed" || receipt.transfer?.state == .verified) ? "Completed" : "Needs review") · \(receipt.date.formatted())").font(.caption).foregroundStyle(.secondary)
                     if let detail = receipt.detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
                     Button("Show backup in Finder") { NSWorkspace.shared.activateFileViewerSelecting([receipt.backup]) }
                 }.padding(.vertical, 5)
