@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-    <key>CFBundleName</key><string>Calibre Nova</string>
-    <key>CFBundleDisplayName</key><string>Calibre Nova</string>
-    <key>CFBundleExecutable</key><string>CalibreNova</string>
-    <key>CFBundleIdentifier</key><string>com.calibrenova.app</string>
+    <key>CFBundleName</key><string>Smallibre</string>
+    <key>CFBundleDisplayName</key><string>Smallibre</string>
+    <key>CFBundleExecutable</key><string>Smallibre</string>
+    <key>CFBundleIdentifier</key><string>com.smallibre.app</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>
     <key>CFBundleVersion</key><string>1</string>
@@ -12,15 +12,15 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.books</string>
     <key>NSHighResolutionCapable</key><true/>
-    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Calibre Nova contributors. GPL-3.0-only.</string>
+    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Smallibre contributors. GPL-3.0-only.</string>
     <key>CFBundleDocumentTypes</key><array><dict>
         <key>CFBundleTypeName</key><string>Ebook</string>
         <key>CFBundleTypeRole</key><string>Viewer</string>
         <key>LSHandlerRank</key><string>Alternate</string>
-        <key>LSItemContentTypes</key><array><string>org.idpf.epub-container</string><string>com.calibrenova.mobi</string><string>com.calibrenova.azw3</string></array>
+        <key>LSItemContentTypes</key><array><string>org.idpf.epub-container</string><string>com.smallibre.mobi</string><string>com.smallibre.azw3</string></array>
     </dict></array>
     <key>UTImportedTypeDeclarations</key><array>
-        <dict><key>UTTypeIdentifier</key><string>com.calibrenova.mobi</string><key>UTTypeConformsTo</key><array><string>public.data</string></array><key>UTTypeDescription</key><string>Mobipocket ebook</string><key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>mobi</string><string>azw</string><string>prc</string></array></dict></dict>
-        <dict><key>UTTypeIdentifier</key><string>com.calibrenova.azw3</string><key>UTTypeConformsTo</key><array><string>public.data</string></array><key>UTTypeDescription</key><string>Kindle ebook</string><key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><string>azw3</string></dict></dict>
+        <dict><key>UTTypeIdentifier</key><string>com.smallibre.mobi</string><key>UTTypeConformsTo</key><array><string>public.data</string></array><key>UTTypeDescription</key><string>Mobipocket ebook</string><key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>mobi</string><string>azw</string><string>prc</string></array></dict></dict>
+        <dict><key>UTTypeIdentifier</key><string>com.smallibre.azw3</string><key>UTTypeConformsTo</key><array><string>public.data</string></array><key>UTTypeDescription</key><string>Kindle ebook</string><key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><string>azw3</string></dict></dict>
     </array>
 </dict></plist>

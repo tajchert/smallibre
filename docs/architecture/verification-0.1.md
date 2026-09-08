@@ -4,8 +4,8 @@ Verified locally on 2026-09-08, Apple Silicon, macOS 26.6.2 (25G83), Xcode 26.6 
 
 ## Measured artifact
 
-- `build/Calibre Nova.app`: 3,362,615 bytes summed across bundle files (3.36 MB decimal; approximately 3.3 MB allocated on this filesystem).
-- `build/Calibre-Nova-0.1.zip`: 1,853,871 bytes (1.85 MB decimal).
+- `build/Smallibre.app`: 3,362,615 bytes summed across bundle files (3.36 MB decimal; approximately 3.3 MB allocated on this filesystem).
+- `build/Smallibre-0.1.zip`: 1,853,871 bytes (1.85 MB decimal).
 - Release executable links Apple/system frameworks, Swift libraries, SQLite and zlib. No third-party runtime is bundled.
 - Bundle plist validation and strict local code-signature verification passed. Signing is ad hoc, not Developer ID signing or notarization.
 
@@ -31,7 +31,7 @@ No large real-world book corpus, physical reader transfer, EPUBCheck validation,
 
 Also tested the owner's `Silos.epub` locally on 2026-09-08: 1,871,289 bytes, 143 archive resources and 96 spine items. The optional `LocalBookTests` check passed import, duplicate detection, unchanged byte-identical preparation, metadata and typography export, every exported resource's integrity check, preview HTML preparation for every spine item, database reopen and source byte preservation. This exercises preview preparation, not visual rendering of all chapters or physical-reader fidelity. The complete check took approximately 0.42 seconds on this host; this is a single warm development test, not a product benchmark. Temporary library/export files were removed and the book was not added to Git.
 
-Repeat with `NOVA_TEST_EPUB=/absolute/path/to/book.epub swift test --filter LocalBookTests`. The test skips when the environment variable is absent.
+Repeat with `SMALLIBRE_TEST_EPUB=/absolute/path/to/book.epub swift test --filter LocalBookTests`. The test skips when the environment variable is absent.
 
 ## Mounted Kindle hardware transfer
 
@@ -39,4 +39,4 @@ On 2026-09-08 the owner authorized testing a connected Paperwhite, mounted as `/
 
 This verifies the mounted-volume core transfer path on real hardware, including collision handling. It does not verify Kindle indexing/rendering after eject, interrupted transfers, MTP or EPUB conversion. The earlier statement that no physical transfer had been tested is superseded by this check.
 
-Repeat only with an authorized device: set `NOVA_TEST_READER_BOOK` to an existing compatible book and `NOVA_TEST_READER_FOLDER` to the mounted documents folder, then run `swift test --filter ReaderTransferTests`. The test skips when these variables are absent.
+Repeat only with an authorized device: set `SMALLIBRE_TEST_READER_BOOK` to an existing compatible book and `SMALLIBRE_TEST_READER_FOLDER` to the mounted documents folder, then run `swift test --filter ReaderTransferTests`. The test skips when these variables are absent.

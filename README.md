@@ -1,4 +1,4 @@
-# Calibre Nova
+# Smallibre
 
 A small native macOS home for your ebooks. SwiftUI/AppKit interface, custom Swift book engine, SQLite library, and system zlib. No Python, Qt, Electron, Rust runtime, or downloaded package dependencies.
 
@@ -9,7 +9,7 @@ Requires macOS 14 or newer and an Xcode toolchain with Swift 6.
 ```sh
 swift test
 bash scripts/build-app.sh
-open "build/Calibre Nova.app"
+open "build/Smallibre.app"
 ```
 
 Open `Package.swift` in Xcode for development. The packaging script creates a locally ad-hoc-signed Apple Silicon app when run on Apple Silicon; it is not Developer ID signed or notarized for public distribution. Build on Intel for an Intel binary. Choose **Explore with a sample book** to try the included original sample.
@@ -40,28 +40,30 @@ The SQLite database queries are simple and the UI currently loads library summar
 
 ## Your files
 
-By default Nova stores its database, originals and cover thumbnails under:
+By default Smallibre stores its database, originals and cover thumbnails under:
 
 ```text
-~/Library/Application Support/Calibre Nova/
+~/Library/Application Support/Smallibre/
   library.sqlite
   originals/<sha256>.<format>
   covers/<sha256>.png
   staging/
 ```
 
-Deleting or editing the source file outside Nova does not change the imported copy. Exporting makes another file. Quit Nova before manually backing up the entire library folder, including any SQLite WAL files. Do not edit files in `originals/` or place the active database on a network share.
+On first launch, Smallibre moves an existing `Calibre Nova` library to this location and leaves a compatibility link so saved backup paths keep working. Quit the old app before launching Smallibre. Existing book files and metadata are preserved.
+
+Deleting or editing the source file outside Smallibre does not change the imported copy. Exporting makes another file. Quit Smallibre before manually backing up the entire library folder, including any SQLite WAL files. Do not edit files in `originals/` or place the active database on a network share.
 
 For isolated development launch the bundle executable with `--library /absolute/path` and optionally `--import /absolute/book.epub`. These flags select a separate test library and import a fixture; they are not required for normal use.
 
 ## Development
 
-- `Sources/NovaCore`: bounded ZIP I/O, EPUB/MOBI inspection, EPUB edits, SQLite, imports/exports, metadata suggestions and preview sanitization.
-- `Sources/NovaApp`: native library/inspector, panels, editor, chapter viewer and reader export sheet.
-- `Tests/NovaCoreTests`: independently authored valid/malformed fixtures and regression tests.
+- `Sources/SmallibreCore`: bounded ZIP I/O, EPUB/MOBI inspection, EPUB edits, SQLite, imports/exports, metadata suggestions and preview sanitization.
+- `Sources/SmallibreApp`: native library/inspector, panels, editor, chapter viewer and reader export sheet.
+- `Tests/SmallibreCoreTests`: independently authored valid/malformed fixtures and regression tests.
 - `scripts/build-app.sh`: release build, generated icon, bundle assembly and local signing.
 
-The locally supplied `calibre/` checkout is reference material and is ignored by Nova's git repository. No Calibre implementation is shipped in this build. License: GPL-3.0-only; see `LICENSE`. The sample book “Small Hours” and synthetic fixtures were authored for this project and are distributed under the same license.
+The locally supplied `calibre/` checkout is reference material and is ignored by Smallibre's git repository. No Calibre implementation is shipped in this build. License: GPL-3.0-only; see `LICENSE`. The sample book “Small Hours” and synthetic fixtures were authored for this project and are distributed under the same license.
 
 ## Next increments
 

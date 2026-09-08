@@ -2,15 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "CalibreNova",
+    name: "Smallibre",
     platforms: [.macOS(.v14)],
-    products: [.library(name: "NovaCore", targets: ["NovaCore"]), .executable(name: "CalibreNova", targets: ["NovaApp"]), .executable(name: "NovaReaderHelper", targets: ["NovaReaderHelper"])],
+    products: [.library(name: "SmallibreCore", targets: ["SmallibreCore"]), .executable(name: "Smallibre", targets: ["SmallibreApp"]), .executable(name: "SmallibreReaderHelper", targets: ["SmallibreReaderHelper"])],
     targets: [
         .systemLibrary(name: "CSQLite"),
         .systemLibrary(name: "CZlib"),
-        .target(name: "NovaCore", dependencies: ["CSQLite", "CZlib"]),
-        .executableTarget(name: "NovaApp", dependencies: ["NovaCore"]),
-        .executableTarget(name: "NovaReaderHelper", dependencies: ["NovaCore"]),
-        .testTarget(name: "NovaCoreTests", dependencies: ["NovaCore"], resources: [.copy("Fixtures")])
+        .target(name: "SmallibreCore", dependencies: ["CSQLite", "CZlib"]),
+        .executableTarget(name: "SmallibreApp", dependencies: ["SmallibreCore"]),
+        .executableTarget(name: "SmallibreReaderHelper", dependencies: ["SmallibreCore"]),
+        .testTarget(name: "SmallibreAppTests", dependencies: ["SmallibreApp", "SmallibreCore"]),
+        .testTarget(name: "SmallibreCoreTests", dependencies: ["SmallibreCore"], resources: [.copy("Fixtures")])
     ]
 )

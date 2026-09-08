@@ -2,14 +2,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 swift build -c release
-app="build/Calibre Nova.app"
+app="build/Smallibre.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-cp .build/release/NovaReaderHelper "$app/Contents/MacOS/NovaReaderHelper"
-codesign --force --sign - "$app/Contents/MacOS/NovaReaderHelper"
-cp .build/release/CalibreNova "$app/Contents/MacOS/CalibreNova"
+cp .build/release/SmallibreReaderHelper "$app/Contents/MacOS/SmallibreReaderHelper"
+codesign --force --sign - "$app/Contents/MacOS/SmallibreReaderHelper"
+cp .build/release/Smallibre "$app/Contents/MacOS/Smallibre"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 cp LICENSE "$app/Contents/Resources/LICENSE"
-cp 'Tests/NovaCoreTests/Fixtures/Small Hours.epub' "$app/Contents/Resources/Small Hours.epub"
+cp 'Tests/SmallibreCoreTests/Fixtures/Small Hours.epub' "$app/Contents/Resources/Small Hours.epub"
 swift scripts/make-icon.swift build/AppIcon.iconset
 iconutil -c icns build/AppIcon.iconset -o "$app/Contents/Resources/AppIcon.icns"
 codesign --force --sign - "$app"

@@ -2,11 +2,11 @@
 
 This document records the first increment. See [reader-reliability.md](reader-reliability.md) for the current helper, caching, bulk actions, backups and metadata editing.
 
-The Kindle sidebar provides a refreshed inventory of supported ebook file extensions under a mounted documents folder. Nova automatically locates a single `/Volumes/Kindle*` volume, also accepts a user-selected folder, and observes mount/unmount notifications. Scanning happens off the main actor. The initial scan hashes file contents; it is not yet cached or incremental.
+The Kindle sidebar provides a refreshed inventory of supported ebook file extensions under a mounted documents folder. Smallibre automatically locates a single `/Volumes/Kindle*` volume, also accepts a user-selected folder, and observes mount/unmount notifications. Scanning happens off the main actor. The initial scan hashes file contents; it is not yet cached or incremental.
 
 ReaderStore owns device reads, download verification and guarded deletion. ReaderModel owns the UI snapshot and serializes device operations. LibraryStore remains the sole writer of the Mac library. SHA-256 matches drive “In library” and “On Kindle” indicators; titles are not used to infer identity. Converted/edited editions can appear separately. This is inventory synchronization with explicit actions, not automatic mirroring or deletion.
 
-Downloading supported unprotected files uses a verified temporary copy and the existing immutable import pipeline. Editing downloads a library copy first and opens Nova's editor. MOBI/AZW3 metadata is not written back to the reader. Unsupported/protected formats remain visible with filename and an explanation; their import/edit actions are disabled. KFX component files may appear separately: this version does not reconstruct KFX packages.
+Downloading supported unprotected files uses a verified temporary copy and the existing immutable import pipeline. Editing downloads a library copy first and opens Smallibre's editor. MOBI/AZW3 metadata is not written back to the reader. Unsupported/protected formats remain visible with filename and an explanation; their import/edit actions are disabled. KFX component files may appear separately: this version does not reconstruct KFX packages.
 
 Delete requires app confirmation, validates the source hash and root identity, rejects links/path traversal and uses nonrecursive unlinkat through directory descriptors. Only the selected book file is removed. Sidecars, annotations, folders and Kindle databases are untouched. Deletion is permanent; downloaded library copies survive. A changed connection requires choosing the folder again. Individual oversized/unreadable files do not discard readable scan results.
 

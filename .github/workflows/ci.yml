@@ -8,8 +8,8 @@ jobs:
       - run: swift --version
       - run: swift test
       - run: bash scripts/build-app.sh
-      - run: ditto -c -k --sequesterRsrc --keepParent 'build/Calibre Nova.app' build/Calibre-Nova.zip
+      - run: ditto -c -k --sequesterRsrc --keepParent 'build/Smallibre.app' build/Smallibre.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: Calibre-Nova-macOS
-          path: build/Calibre-Nova.zip
+          name: Smallibre-macOS
+          path: build/Smallibre.zip
