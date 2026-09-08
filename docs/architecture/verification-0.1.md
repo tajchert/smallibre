@@ -32,3 +32,11 @@ No large real-world book corpus, physical reader transfer, EPUBCheck validation,
 Also tested the owner's `Silos.epub` locally on 2026-09-08: 1,871,289 bytes, 143 archive resources and 96 spine items. The optional `LocalBookTests` check passed import, duplicate detection, unchanged byte-identical preparation, metadata and typography export, every exported resource's integrity check, preview HTML preparation for every spine item, database reopen and source byte preservation. This exercises preview preparation, not visual rendering of all chapters or physical-reader fidelity. The complete check took approximately 0.42 seconds on this host; this is a single warm development test, not a product benchmark. Temporary library/export files were removed and the book was not added to Git.
 
 Repeat with `NOVA_TEST_EPUB=/absolute/path/to/book.epub swift test --filter LocalBookTests`. The test skips when the environment variable is absent.
+
+## Mounted Kindle hardware transfer
+
+On 2026-09-08 the owner authorized testing a connected Paperwhite, mounted as `/Volumes/Kindle`. The production LibraryStore imported an existing 4,152,217-byte MOBI into a temporary library and exported two uniquely named copies to the device's documents folder. Both readbacks were byte-identical to the source; exporting twice selected different filenames and preserved the first copy. The original source remained byte-identical. Test copies and temporary library were removed afterward. No existing books or device configuration were changed.
+
+This verifies the mounted-volume core transfer path on real hardware, including collision handling. It does not verify Kindle indexing/rendering after eject, interrupted transfers, MTP or EPUB conversion. The earlier statement that no physical transfer had been tested is superseded by this check.
+
+Repeat only with an authorized device: set `NOVA_TEST_READER_BOOK` to an existing compatible book and `NOVA_TEST_READER_FOLDER` to the mounted documents folder, then run `swift test --filter ReaderTransferTests`. The test skips when these variables are absent.
