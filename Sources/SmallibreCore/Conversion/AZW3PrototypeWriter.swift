@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Isolated C1 serializer, not enabled in export/send UI. Uncompressed standalone KF8, one bounded
 /// fragment per chapter. Format evidence and missing hardware proof are documented separately.
@@ -26,7 +27,8 @@ enum AZW3PrototypeWriter {
         var selectors = Data(), chunkEntries: [KF8PrototypeIndex.Entry] = []
         for index in document.chapters.indices {
             let offset = selectors.count
-            let selector = Data("\(index)-//*[@aid='B\(index)']".utf8)
+            // P selects the parent containing this fragment; it is not the file ordinal.
+            let selector = Data("P-//*[@aid='B\(index)']".utf8)
             selectors.append(try KF8PrototypeIndex.variable(selector.count)); selectors.append(selector)
             chunkEntries.append(.init(label: String(format: "%010d", insertions[index]), control: 15,
                                       values: [offset, index, index, 0, fragmentLengths[index]]))
@@ -73,6 +75,7 @@ enum AZW3PrototypeWriter {
         var exthFields: [(Int, Data)] = document.metadata.authors.map { (100, Data($0.utf8)) }
         exthFields += [(503,Data(document.metadata.title.utf8)), (524,Data(document.metadata.language.utf8)),
                        (501,Data("PDOC".utf8)), (112,Data(("smallibre:" + SHA256Digest.digest(epub).value).utf8)),
+                       (113,Data(documentIdentifier(epub).utf8)),
                        (116,try KF8PrototypeIndex.word(insertions[0])), (125,try KF8PrototypeIndex.word(document.resources.count))]
         if !document.metadata.publisher.isEmpty { exthFields.append((101,Data(document.metadata.publisher.utf8))) }
         var fields = Data()
@@ -116,4 +119,18 @@ enum AZW3PrototypeWriter {
         for record in records { try Task.checkCancellation(); output.append(record) }
         return output
     }
+
+    /// UUIDv5 in the URL namespace, named by the prototype profile and prepared EPUB SHA-256.
+    /// SHA-1 is used only by the UUIDv5 naming algorithm, never for integrity verification.
+    /// A stable ID keeps repeated conversions deterministic; changed input gets a new identity.
+    private static func documentIdentifier(_ epub: Data) -> String {
+        var name = Data([0x6b,0xa7,0xb8,0x11,0x9d,0xad,0x11,0xd1,0x80,0xb4,0x00,0xc0,0x4f,0xd4,0x30,0xc8])
+        name.append(Data(("urn:smallibre:azw3:prototype:v1:sha256:" + SHA256Digest.digest(epub).value).utf8))
+        var bytes = Array(Insecure.SHA1.hash(data: name).prefix(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x50
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        return UUID(uuid: (bytes[0],bytes[1],bytes[2],bytes[3],bytes[4],bytes[5],bytes[6],bytes[7],
+                           bytes[8],bytes[9],bytes[10],bytes[11],bytes[12],bytes[13],bytes[14],bytes[15])).uuidString.lowercased()
+    }
+
 }

@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import struct
+import uuid
 
 
 def require(ok, message):
@@ -121,12 +122,17 @@ def inspect(path, output):
     exth_length, exth_count = word(head, exth_start + 4), word(head, exth_start + 8)
     exth = span(head, exth_start, exth_length)
     cursor = 12
+    identifiers = []
     for _ in range(exth_count):
         size = word(exth, cursor + 4)
         require(size >= 8, 'invalid EXTH entry length')
         span(exth, cursor, size)
+        if word(exth, cursor) == 113:
+            identifiers.append(span(exth, cursor + 8, size - 8).decode("ascii"))
         cursor += size
     require(not any(exth[cursor:]), 'unparsed EXTH bytes')
+    require(len(identifiers) == 1, 'expected one EXTH 113 document identifier for Kindle navigation')
+    require(str(uuid.UUID(identifiers[0])) == identifiers[0].lower(), 'invalid document UUID')
     text_count, text_length = word(head, 8, 2), word(head, 4)
     require(0 < text_count < count, 'invalid text record count')
     raw = b''.join(records[1:text_count + 1])
@@ -170,6 +176,12 @@ def inspect(path, output):
             name, fields = fragments[frag]
             require(fields[3] == [file_number] and fields[4] == [frag], 'fragment file/sequence mismatch')
             require(fields[2][0] in selectors, 'missing fragment selector')
+            selector = selectors[fields[2][0]]
+            parent = re.fullmatch(r"P-//\*\[@aid='([0-9A-V]+)'\]", selector)
+            require(parent is not None, 'unsupported fragment selector: expected parent P- selector')
+            parent_tag = re.search(rb'<body\b[^>]*\baid="' + parent[1].encode('ascii') + rb'"[^>]*>', part)
+            require(parent_tag is not None, 'fragment selector does not resolve to skeleton body')
+            require(int(name) - start == parent_tag.end(), 'fragment insertion does not follow selected parent opening tag')
             relative, size = fields[6]
             insertion = int(name) - start
             require(relative == cursor - start - length and 0 <= insertion <= len(part), 'invalid fragment insertion/relative start')

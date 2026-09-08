@@ -27,6 +27,60 @@ final class AZW3PrototypeTests: XCTestCase {
         XCTAssertNotNil(output.range(of: Data("FDST".utf8)))
     }
 
+    func testPersonalDocumentHasStableContentSpecificKindleIdentifier() throws {
+        func fields(_ output: Data) throws -> [UInt32: [Data]] {
+            let header = Int(output.be32(78))
+            let start = header + 16 + Int(output.be32(header + 20))
+            var cursor = start + 12, result: [UInt32: [Data]] = [:]
+            for _ in 0..<Int(output.be32(start + 8)) {
+                let tag = output.be32(cursor), size = Int(output.be32(cursor + 4))
+                guard size >= 8, cursor + size <= output.count else { throw BookError.invalid("Invalid EXTH test data") }
+                result[tag, default: []].append(output.subdata(in: cursor + 8..<cursor + size))
+                cursor += size
+            }
+            return result
+        }
+        let source = try fixture()
+        let first = try fields(AZW3PrototypeWriter.convert(source))
+        XCTAssertEqual(first[501], [Data("PDOC".utf8)])
+        let identifier = try XCTUnwrap(first[113]?.first, "Paperwhite Library navigation requires a document identifier")
+        XCTAssertEqual(first[113]?.count, 1)
+        let text = try XCTUnwrap(String(data: identifier, encoding: .utf8))
+        XCTAssertNotNil(UUID(uuidString: text))
+        XCTAssertEqual(try fields(AZW3PrototypeWriter.convert(source))[113], [identifier])
+
+        let archive = try ZIPArchive(data: source), path = "Book/text/one.xhtml"
+        let chapter = String(data: try archive.data(named: path), encoding: .utf8)!
+        let changed = chapter.replacingOccurrences(of: "</body>", with: "<p>A different edition with the same title.</p></body>")
+        let anotherBook = try archive.writing(replacements: [path: Data(changed.utf8)])
+        let second = try fields(AZW3PrototypeWriter.convert(anotherBook))
+        XCTAssertEqual(second[503], first[503])
+        XCTAssertNotEqual(second[113], [identifier], "Different input bytes must not reuse a title-based identity")
+    }
+
+    func testFragmentSelectorsIdentifyTheirSkeletonParent() throws {
+        let output = try AZW3PrototypeWriter.convert(fixture())
+        let header = Int(output.be32(78))
+        let chunkIndex = Int(output.be32(header + 248))
+        // This bounded profile emits master/data/CNCX records. Parse the actual CNCX strings,
+        // independently of the encoder, and resolve each parent against the serialized text.
+        let stringsStart = Int(output.be32(78 + (chunkIndex + 2) * 8))
+        let stringsEnd = Int(output.be32(78 + (chunkIndex + 3) * 8))
+        var cursor = stringsStart, selectors: [String] = []
+        while cursor < stringsEnd, output[cursor] != 0 {
+            var length = 0
+            for _ in 0..<5 {
+                let byte = output[cursor]; cursor += 1
+                length = (length << 7) | Int(byte & 127)
+                if byte & 128 != 0 { break }
+            }
+            selectors.append(String(decoding: output[cursor..<cursor + length], as: UTF8.self))
+            cursor += length
+        }
+        XCTAssertEqual(selectors, ["P-//*[@aid='B0']", "P-//*[@aid='B1']"],
+                       "The selector prefix describes parent/sibling insertion, not a chapter number")
+    }
+
     func testPrototypeRejectsContentItCannotPreserve() throws {
         let source = try fixture()
         let archive = try ZIPArchive(data: source)

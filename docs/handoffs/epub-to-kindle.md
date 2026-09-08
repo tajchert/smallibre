@@ -6,7 +6,7 @@
 
 Read [shared contracts](README.md) and [native decision](../architecture/native-swift-decision.md). Current `EPUBBook` supplies metadata and spine paths, not a complete conversion document. `MOBIMetadataEditor` rewrites existing metadata; it is not an encoder. A valid MOBI header alone does not prove Kindle readability.
 
-The initial artifact/provenance contract is implemented; see [contract v1](artifact-transport-contract.md). A narrow native C1 prototype now produces an authored standalone KF8 book; see [format evidence](../architecture/azw3-format-evidence.md). Physical Kindle readability remains unverified, so C1 is still open and conversion is not enabled in the app.
+The initial artifact/provenance contract is implemented; see [contract v1](artifact-transport-contract.md). A narrow native C1 prototype produces an authored standalone KF8 book; see [format evidence](../architecture/azw3-format-evidence.md). Hardware testing on Paperwhite 11th generation, firmware 5.19.2 found and isolated two compatibility defects: fragment selectors affected layout, and missing EXTH 113 UUID affected Library navigation. The selector correction and UUID-bearing native probes worked on hardware. Both corrections are now in the writer; the exact final generated artifact awaits a final hardware check. Production conversion is not enabled in the app.
 
 ## Proposed code boundaries
 
@@ -18,10 +18,12 @@ Integrate snapshot preparation with `LibraryStore.swift` / `EPUBEditor.swift`; p
 
 ### C1 — Prove a minimal native AZW3 on hardware
 
-- [ ] Build an isolated writer prototype for an authored two-chapter EPUB with Unicode text, one image, one cross-chapter link and a navigation entry.
-- [ ] Document the required Palm database records, MOBI/KF8 headers, EXTH metadata, text encoding/compression, resource references, skeleton/fragment indexes and navigation records. Resolve offsets from serialized UTF-8 bytes, not Swift character counts.
-- [ ] Specify the initially supported compression and validate it on target hardware. Do not expand to multiple compression schemes without evidence they are needed.
+- [x] Build an isolated writer prototype for an authored two-chapter EPUB with Unicode text, one image, one cross-chapter link and a navigation entry.
+- [x] Document the required Palm database records, MOBI/KF8 headers, EXTH metadata, text encoding/compression, resource references, skeleton/fragment indexes and navigation records. Resolve offsets from serialized UTF-8 bytes, not Swift character counts.
+- [x] Specify the initially supported compression and validate it on target hardware. Do not expand to multiple compression schemes without evidence they are needed.
 - [ ] Independently inspect/decode output using a development-only reference tool and open/read it on a real AZW3-capable Kindle. Record model/firmware and results.
+
+**Hardware status (2026-09-08):** native content/navigation and font scaling were confirmed after correcting fragment selectors. Probe A (fresh PDOC without UUID) still lacked the Library arrow; probes B (PDOC with UUID) and C (EBOK with UUID) both worked. The writer now preserves PDOC and emits a stable input-specific EXTH 113 UUID. Independent decoding and local regressions pass; the final deterministic-UUID artifact is retained for a last hardware retest. Exact model: Kindle Paperwhite (11th generation), firmware 5.19.2.
 
 **Exit:** correct text order, image, navigation and link work on hardware. If this fails, report the unsupported format detail before building UI around the prototype. This is the highest-risk milestone.
 
