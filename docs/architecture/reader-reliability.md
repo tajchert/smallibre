@@ -27,7 +27,7 @@ Backups are ordinary files, exposed in Finder for recovery/import/copy-back. Ful
 - Native UI: helper scan, selecting test book, editing publisher and viewing completed backup history passed.
 - Independent Python check after UI update: all 374 non-metadata records were identical to the source, and the new publisher was present.
 - Independent review findings about path replacement, send snapshots and helper termination were fixed, regression-tested and re-reviewed with no new material findings.
-- Kindle was safely ejected for physical verification. Screen indexing/opening/page-turning awaits the owner's observation; this cannot be established from the mounted filesystem.
+- Kindle was safely ejected for physical verification. The owner subsequently confirmed that the test book works and can be read on the Kindle. This verifies on-device indexing/opening and reading for this test book; it is not a claim of compatibility across all books or models.
 
 Disposable file left for the screen check: `Nova Reader Test EF0922DC-3F40-4FC2-A2A8-3629F4CD0A46.mobi`, with title `Nova Reader Test — ready to read`. Hardware-test backups are under `build/reader-hardware/reader-backups`; the UI publisher-edit backup is in the default library's `reader-backups` directory. Neither book bytes nor backups are tracked by Git.
 
@@ -36,3 +36,5 @@ Disposable file left for the screen check: `Nova Reader Test EF0922DC-3F40-4FC2-
 The custom Swift implementation was checked against the local Calibre metadata code and [libmobi's public structure documentation](https://www.fabiszewski.net/libmobi/structMOBIMobiHeader.html). No Calibre or libmobi implementation is bundled.
 
 Final build: 4,840,697 summed bundle bytes (4.84 MB decimal); ZIP 2,289,464 bytes (2.29 MB decimal). Local ad-hoc signature verification passed. Final default suite: 35 passed, 4 opt-in tests skipped, zero failures. Disposable hardware tests were separately enabled and passed. Public notarization remains outside this increment.
+
+Owner confirmation received: “Yes, book works and can read it.” Physical reading verification is complete for the disposable MOBI test copy. The test copy remains on the reader; no cleanup was performed after confirmation.

@@ -14,4 +14,4 @@ Architecture: a small bundled Swift helper performs USB I/O using JSON requests 
 
 The user approved these items and iterative implementation. No further design approval is pending.
 
-Physical screen verification remains pending the owner’s observation after eject; filesystem and content-integrity checks completed.
+Physical screen verification completed: the owner confirmed that the test book works and can be read after eject. Filesystem and content-integrity checks also passed.
