@@ -82,6 +82,30 @@ extension ReaderLifecycleTests {
         // Cancel before the main-actor task launches; never access a real device.
         reader.systemWillSleep()
     }
+
+    func testStartupDiscoversAlreadyMountedKindleOnly() {
+        let reader = ReaderModel()
+        reader.libraryReady = true
+        reader.localRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        reader.discoverMounted(volumes: [URL(fileURLWithPath: "/"), URL(fileURLWithPath: "/Volumes/KindleBackup")])
+        XCTAssertNil(reader.folder)
+        XCTAssertFalse(reader.busy)
+        reader.discoverMounted(volumes: [URL(fileURLWithPath: "/"), URL(fileURLWithPath: "/Volumes/Kindle")])
+        XCTAssertEqual(reader.folder?.path, "/Volumes/Kindle/documents")
+        XCTAssertTrue(reader.busy)
+        reader.systemWillSleep()
+    }
+
+    func testStartupDiscoveryWaitsForLibraryAndKeepsChosenFolder() {
+        let reader = ReaderModel()
+        reader.discoverMounted(volumes: [URL(fileURLWithPath: "/Volumes/Kindle")])
+        XCTAssertNil(reader.folder)
+        reader.libraryReady = true
+        reader.folder = URL(fileURLWithPath: "/tmp/chosen-reader")
+        reader.discoverMounted(volumes: [URL(fileURLWithPath: "/Volumes/Kindle")])
+        XCTAssertEqual(reader.folder?.path, "/tmp/chosen-reader")
+        XCTAssertFalse(reader.busy)
+    }
 }
 
 extension ReaderLifecycleTests {

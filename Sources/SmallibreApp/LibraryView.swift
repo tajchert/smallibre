@@ -5,7 +5,7 @@ struct LibraryView: View {
     @Bindable var model: AppModel
     @Environment(\.colorScheme) private var colorScheme
     @State private var dropTarget = false
-    @State private var searchPresented = false
+    @FocusState private var searchFocused: Bool
     @State private var appearanceHover = false
 
     var body: some View {
@@ -25,23 +25,28 @@ struct LibraryView: View {
         .navigationTitle(model.collectionTitle)
         .tint(SmallibreTheme.accent)
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                sortMenu
-                Button { model.chooseBooks() } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: Glyph.add).font(.system(size: 11, weight: .bold))
-                        Text("Add Books")
+            ToolbarItem(placement: .primaryAction) {
+                ToolbarPlain {
+                    HStack(spacing: 10) {
+                        sortMenu
+                        searchField
+                        Button { model.chooseBooks() } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: Glyph.add).font(.system(size: 11, weight: .bold))
+                                Text("Add Books")
+                            }
+                        }
+                        .buttonStyle(.accentAction(height: 28, radius: 7))
+                        .disabled(model.importing)
+                        .help("Add books to library (⌘O)")
                     }
+                    .padding(.trailing, 4)
                 }
-                .buttonStyle(.accentAction(height: 28, radius: 7))
-                .disabled(model.importing)
-                .help("Add books to library (⌘O)")
             }
         }
-        .searchable(text: $model.search, isPresented: $searchPresented, placement: .toolbar, prompt: "Search books or authors")
         .focusedSceneValue(\.libraryCommands, model.commandsAvailable ? LibraryCommandContext(model: model) { global in
             model.prepareSearch(global: global)
-            searchPresented = true
+            searchFocused = true
         } : nil)
         .task { await model.start() }
         .onOpenURL { model.importURLs([$0]) }
@@ -63,18 +68,32 @@ struct LibraryView: View {
 
     // MARK: Toolbar
 
-    private var sortMenu: some View {
-        Menu {
-            ForEach(AppModel.Sort.allCases, id: \.self) { sort in
-                Button { model.selectSort(sort) } label: {
-                    if model.sort == sort {
-                        Label("\(sort.rawValue) \(model.sortAscending ? "↑" : "↓")", systemImage: "checkmark")
-                    } else {
-                        Text(sort.rawValue)
-                    }
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: Glyph.search).font(.system(size: 12, weight: .medium)).foregroundStyle(SmallibreTheme.text3)
+            TextField("Search books or authors", text: $model.search)
+                .textFieldStyle(.plain).font(.system(size: 13)).foregroundStyle(SmallibreTheme.text)
+                .focused($searchFocused)
+                .onExitCommand { model.search = ""; searchFocused = false }
+            if !model.search.isEmpty {
+                Button { model.search = ""; searchFocused = true } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(SmallibreTheme.text3)
                 }
+                .buttonStyle(.plain)
             }
-        } label: {
+        }
+        .padding(.horizontal, 9).frame(width: 230, height: 28)
+        .background(SmallibreTheme.field, in: .rect(cornerRadius: 7))
+        .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(searchFocused ? SmallibreTheme.accent : SmallibreTheme.controlBorder, lineWidth: 1) }
+        .help("Search books or authors (⌘F)")
+    }
+
+    private var sortMenu: some View {
+        PopupMenuButton(items: AppModel.Sort.allCases.map { sort in
+            let active = model.sort == sort
+            let title = active ? "\(sort.rawValue) \(model.sortAscending ? "↑" : "↓")" : sort.rawValue
+            return PopupMenuItem(title: title, checked: active) { model.selectSort(sort) }
+        }) {
             HStack(spacing: 5) {
                 Image(systemName: Glyph.sort).font(.system(size: 11, weight: .semibold))
                 Text(model.sort.rawValue).font(.system(size: 13))
@@ -85,10 +104,7 @@ struct LibraryView: View {
             .background(SmallibreTheme.control, in: .rect(cornerRadius: 6))
             .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(SmallibreTheme.controlBorder, lineWidth: 1) }
             .shadow(color: .black.opacity(0.08), radius: 0.5, x: 0, y: 0.5)
-            .contentShape(.rect)
         }
-        .menuStyle(.button).buttonStyle(.plain)
-        .menuIndicator(.hidden)
         .fixedSize()
         .help(model.filter == "device" ? "Sort device books. Recently added uses file creation dates, or modification dates when unavailable." : "Sort library books")
     }

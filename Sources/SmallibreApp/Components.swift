@@ -209,3 +209,44 @@ struct DesignTextField: View {
         }
     }
 }
+
+/// Hosts SwiftUI content in an AppKit view and switches off the bordered bezel the toolbar draws around its item.
+struct ToolbarPlain<Content: View>: NSViewRepresentable {
+    let content: Content
+    @Environment(\.colorScheme) private var colorScheme
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    func makeNSView(context: Context) -> HostingView<Content> {
+        let view = HostingView(rootView: content)
+        view.setContentHuggingPriority(.required, for: .horizontal)
+        return view
+    }
+    func updateNSView(_ view: HostingView<Content>, context: Context) {
+        _ = colorScheme // Re-run this update whenever the scheme flips so the hosted content is refreshed.
+        view.rootView = content
+        view.appearance = NSApplication.shared.appearance
+    }
+
+    final class HostingView<Root: View>: NSHostingView<Root> {
+        override func viewDidChangeEffectiveAppearance() {
+            super.viewDidChangeEffectiveAppearance()
+            let current = rootView
+            rootView = current
+            needsLayout = true
+            needsDisplay = true
+        }
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            DispatchQueue.main.async { [weak self] in self?.unborder() }
+        }
+        override func viewDidMoveToSuperview() {
+            super.viewDidMoveToSuperview()
+            DispatchQueue.main.async { [weak self] in self?.unborder() }
+        }
+        private func unborder() {
+            guard let items = window?.toolbar?.items else { return }
+            for item in items where item.view.map({ isDescendant(of: $0) }) == true {
+                item.isBordered = false
+            }
+        }
+    }
+}

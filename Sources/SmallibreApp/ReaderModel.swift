@@ -94,6 +94,12 @@ import SmallibreCore
         // Existence and directory scanning are delegated to the helper, never to the UI thread.
         connect(URL(fileURLWithPath: "/Volumes/Kindle/documents"))
     }
+    /// Applies the mount rule to volumes that were already connected before the app started.
+    func discoverMounted(volumes: [URL]? = nil) {
+        guard folder == nil else { return }
+        let mounted = volumes ?? FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? []
+        for volume in mounted where folder == nil { self.mounted(volume) }
+    }
     func mounted(_ volume: URL) {
         guard libraryReady, !sleeping, !needsRefreshAfterSleep, !busy else { return }
         let path = volume.standardizedFileURL.path

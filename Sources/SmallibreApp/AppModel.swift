@@ -119,6 +119,7 @@ final class AppModel {
     func start() async {
         await reload()
         reader.reloadHistory()
+        reader.discoverMounted()
         let args = ProcessInfo.processInfo.arguments
         if let index = args.firstIndex(of: "--import"), args.indices.contains(index + 1) { importURLs([URL(fileURLWithPath: args[index + 1])]) }
     }
