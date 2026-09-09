@@ -33,6 +33,7 @@ struct PopupMenuButton<Label: View>: View {
         }
         func updateNSView(_ view: PresenterView, context: Context) {
             view.items = items
+            view.isEnabled = context.environment.isEnabled
             view.setAccessibilityLabel(accessibilityLabel)
         }
     }

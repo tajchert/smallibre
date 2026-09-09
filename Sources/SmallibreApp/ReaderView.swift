@@ -64,39 +64,45 @@ struct ReaderView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .bottom, spacing: 12) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Title and buttons keep their intrinsic width; only the path gives way.
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
                 Text("Kindle").font(.system(size: 26, weight: .bold)).tracking(-0.5).foregroundStyle(SmallibreTheme.text)
-                    .lineLimit(1).fixedSize()
-                Text(reader.folder?.path ?? "Connect your Kindle in USB drive mode")
-                    .font(.system(size: 13)).foregroundStyle(SmallibreTheme.text2)
-                    .lineLimit(1).truncationMode(.middle).padding(.top, 4)
-            }
-            .layoutPriority(-1)
-            Spacer(minLength: 8)
-            // The buttons keep their intrinsic width; the path beside them truncates instead.
-            HStack(spacing: 8) {
-                Button("Choose folder…") { reader.choose() }
-                    .buttonStyle(.control(height: controlHeight, radius: 6, fontSize: 12)).disabled(reader.busy)
-                refreshMenu
-                Button("Backups & history") { reader.reloadHistory(); history = true }
-                    .buttonStyle(.control(height: controlHeight, radius: 6, fontSize: 12))
-                if reader.busy {
-                    Button("Cancel") { reader.cancel() }
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                HStack(spacing: 8) {
+                    refreshMenu
+                    Button("Backups & history") { reader.reloadHistory(); history = true }
                         .buttonStyle(.control(height: controlHeight, radius: 6, fontSize: 12))
+                    if reader.busy {
+                        Button("Cancel") { reader.cancel() }
+                            .buttonStyle(.control(height: controlHeight, radius: 6, fontSize: 12))
+                    }
                 }
+                .fixedSize()
             }
-            .lineLimit(1)
+            HStack(spacing: 6) {
+                Text(reader.folder?.path ?? "No reader folder selected")
+                    .font(.system(size: 13)).foregroundStyle(SmallibreTheme.text2)
+                    .lineLimit(1).truncationMode(.middle)
+                    .help(reader.folder?.path ?? "Connect your reader or choose its books folder")
+                Button { reader.choose() } label: {
+                    Image(systemName: "pencil").font(.system(size: 12))
+                }
+                .buttonStyle(.control(height: controlHeight, radius: 6, fontSize: 12))
+                .disabled(reader.busy)
+                .help(reader.folder == nil ? "Choose reader folder" : "Change reader folder")
+                .accessibilityLabel(reader.folder == nil ? "Choose reader folder" : "Change reader folder")
+                Spacer(minLength: 0)
+            }
         }
     }
 
     /// Both refresh depths live behind one control that has to read as a plain bordered button.
     private var refreshMenu: some View {
-        Menu {
-            Button("Refresh changes") { reader.refresh() }
-            Button("Recheck every file") { reader.refresh(full: true) }
-        } label: {
+        PopupMenuButton(items: [
+            PopupMenuItem(title: "Refresh changes") { reader.refresh() },
+            PopupMenuItem(title: "Recheck every file") { reader.refresh(full: true) }
+        ], accessibilityLabel: "Refresh reader") {
             HStack(spacing: 5) {
                 Image(systemName: Glyph.refresh).font(.system(size: 11, weight: .semibold))
                 Text("Refresh")
@@ -105,7 +111,7 @@ struct ReaderView: View {
             .padding(.horizontal, 11).frame(height: controlHeight)
             .contentShape(.rect)
         }
-        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+        .fixedSize()
         .background(SmallibreTheme.control, in: .rect(cornerRadius: 6))
         .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(SmallibreTheme.controlBorder, lineWidth: 1) }
         .shadow(color: .black.opacity(0.08), radius: 0.5, x: 0, y: 0.5)

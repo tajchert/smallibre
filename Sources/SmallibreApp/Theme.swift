@@ -43,7 +43,7 @@ enum SmallibreTheme {
 
     // Accents
     static let accent = Color(light: 0x4f7d5c, dark: 0x86b092)
-    static let onAccent = Color(light: 0xffffff, dark: 0x0e1a12)
+    static let onAccent = Color.white
     static let accentSoft = Color(light: NSColor(hex: 0x4f7d5c, alpha: 0.14), dark: NSColor(hex: 0x86b092, alpha: 0.20))
     static let destructive = Color(nsColor: NSColor(hex: 0xe5484d))
     static let online = Color(nsColor: NSColor(hex: 0x34c759))

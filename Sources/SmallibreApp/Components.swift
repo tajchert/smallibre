@@ -134,9 +134,8 @@ struct AccentButtonStyle: ButtonStyle {
                 .foregroundStyle(SmallibreTheme.onAccent)
                 .padding(.horizontal, 12)
                 .frame(maxWidth: fillsWidth ? .infinity : nil).frame(height: height)
-                .background(SmallibreTheme.accent.opacity(configuration.isPressed ? 0.82 : 1), in: .rect(cornerRadius: radius))
+                .background(SmallibreTheme.accent.opacity(enabled ? (configuration.isPressed ? 0.82 : 1) : 0.4), in: .rect(cornerRadius: radius))
                 .shadow(color: .black.opacity(0.15), radius: 1, x: 0, y: 1)
-                .opacity(enabled ? 1 : 0.4)
                 .contentShape(.rect)
         }
     }

@@ -47,7 +47,7 @@ struct InspectorView: View {
 
                 VStack(spacing: 8) {
                     Button { model.reader.sendToDevice(book, model: model) } label: {
-                        actionLabel(model.reader.deviceMatch(book) == nil ? "Send to Kindle" : "On Kindle · Send Again", Glyph.send)
+                        actionLabel(model.reader.deviceMatch(book) == nil ? "Send to Kindle" : "On Kindle", Glyph.send)
                     }
                     .buttonStyle(.accentAction(height: 30, fillsWidth: true))
                     .disabled(model.operation != nil || model.reader.busy || !model.reader.libraryReady || model.reader.deviceMatch(book) != nil)
@@ -75,7 +75,20 @@ struct InspectorView: View {
                     if !book.metadata.publisher.isEmpty { detailRow("Publisher", book.metadata.publisher) }
                     if let year = book.metadata.publishedYear { detailRow("Published", year) }
                     detailRow("Added", book.addedAt.formatted(date: .abbreviated, time: .omitted))
-                    detailRow("File", book.originalFilename, secondary: true)
+                    GridRow {
+                        Text("File").foregroundStyle(SmallibreTheme.text3)
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(book.originalFilename).foregroundStyle(SmallibreTheme.text2)
+                                .textSelection(.enabled).lineLimit(2).truncationMode(.middle)
+                            Button { model.revealOriginal(book) } label: {
+                                Image(systemName: "folder").font(.system(size: 11))
+                            }
+                            .buttonStyle(.control(height: 22, radius: 5, fontSize: 11))
+                            .help("Show original in Finder")
+                            .accessibilityLabel("Show original in Finder")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     if !book.metadata.identifier.isEmpty { detailRow("Identifier", book.metadata.identifier, secondary: true) }
                 }
                 .font(.system(size: 12)).padding(.top, 14)
