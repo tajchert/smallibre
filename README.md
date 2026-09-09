@@ -6,15 +6,15 @@
 
 A small, native macOS app for organizing ebooks and taking them with you.
 
-macOS 14+ · Swift · GPL-3.0 · Early alpha
+macOS 14+ · Swift · GPL-3.0
 
 </div>
 
 Smallibre brings your ebook library and your connected reader into one place. Add books, tidy their details, adjust EPUB typography, and manage the books on a mounted Kindle—all through a native Mac interface.
 
-Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **6.7 MB**. No Calibre installation or additional runtime is needed.
+Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **8.4 MB**. No Calibre installation or additional runtime is needed.
 
-> **Early alpha:** mounted-reader management is available today. Version 0.3.5 includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP is at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
+> **Version 0.4.0** is the first non-prerelease, with a redesigned native interface, light and dark appearance, publication dates, and automatic discovery of an already-mounted Kindle. It includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP remains at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
 
 ## What you can do
 
@@ -49,7 +49,7 @@ Requires **Apple Silicon and macOS 14 or later**:
 brew install --cask tajchert/tap/smallibre
 ```
 
-Or download the app from [GitHub Releases](https://github.com/tajchert/smallibre/releases). This early-alpha build is not notarized. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway** after reviewing the app ([Apple’s guidance](https://support.apple.com/en-us/102445)).
+Or download the app from [GitHub Releases](https://github.com/tajchert/smallibre/releases). The app is not notarized. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway** after reviewing the app ([Apple’s guidance](https://support.apple.com/en-us/102445)).
 
 ## Build from source
 
