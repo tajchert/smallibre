@@ -140,13 +140,8 @@ struct LibraryView: View {
                 SidebarRow(title: "Kindle", systemImage: Glyph.device, count: model.reader.books.count, online: true,
                            selected: model.filter == "device") { model.filter = "device" }
             } else {
-                HStack(spacing: 8) {
-                    Image(systemName: Glyph.device).font(.system(size: 13)).frame(width: 16, height: 16)
-                    Text("No device").lineLimit(1)
-                    Spacer(minLength: 4)
-                }
-                .font(.system(size: 13)).foregroundStyle(SmallibreTheme.text3)
-                .padding(.horizontal, 8).frame(height: 28)
+                SidebarRow(title: "Connect reader…", systemImage: Glyph.device,
+                           selected: model.filter == "device") { model.filter = "device" }
             }
 
             Spacer(minLength: 12)

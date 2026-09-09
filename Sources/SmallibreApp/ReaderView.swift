@@ -134,19 +134,20 @@ struct ReaderView: View {
     }
 
     private var table: some View {
-        ScrollView {
-            LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Section {
-                    ForEach(filtered) { row($0) }
-                } header: {
-                    ReaderColumns { Text("Title") } status: { Text("Status") } format: { Text("Format") }
-                        .font(.system(size: 11, weight: .semibold)).foregroundStyle(SmallibreTheme.text3)
-                        .padding(.vertical, 6).padding(.horizontal, 14)
-                        .background(SmallibreTheme.content)
-                        .overlay(alignment: .bottom) { Hairline() }
+        List(selection: $reader.selectedIDs) {
+            Section {
+                ForEach(filtered) { item in
+                    row(item).tag(item.id)
+                        .listRowSeparator(.hidden)
                 }
+            } header: {
+                ReaderColumns { Text("Title") } status: { Text("Status") } format: { Text("Format") }
+                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(SmallibreTheme.text3)
+                    .padding(.vertical, 6).padding(.horizontal, 14)
             }
         }
+        .listStyle(.inset)
+        .scrollContentBackground(.hidden)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(SmallibreTheme.group)
         .clipShape(.rect(cornerRadius: 8))
@@ -156,46 +157,33 @@ struct ReaderView: View {
 
     private func row(_ item: ReaderBook) -> some View {
         let selected = reader.selectedIDs.contains(item.id)
-        let primary = selected ? SmallibreTheme.onAccent : SmallibreTheme.text
-        let secondary = selected ? SmallibreTheme.onAccent : SmallibreTheme.text2
-        return Button { select(item) } label: {
-            ReaderColumns {
-                HStack(spacing: 10) {
-                    Image(systemName: Glyph.book).font(.system(size: 15)).foregroundStyle(secondary).frame(width: 17)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(item.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(primary).lineLimit(1)
-                        Text(item.metadata?.authors.joined(separator: ", ") ?? "\(item.formatLabel) · metadata unavailable")
-                            .font(.system(size: 12)).foregroundStyle(secondary).lineLimit(1)
-                    }
+        let primary = selected ? AnyShapeStyle(.primary) : AnyShapeStyle(SmallibreTheme.text)
+        let secondary = selected ? AnyShapeStyle(.primary) : AnyShapeStyle(SmallibreTheme.text2)
+        return ReaderColumns {
+            HStack(spacing: 10) {
+                Image(systemName: Glyph.book).font(.system(size: 15)).foregroundStyle(secondary).frame(width: 17)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(primary).lineLimit(1)
+                    Text(item.metadata?.authors.joined(separator: ", ") ?? "\(item.formatLabel) · metadata unavailable")
+                        .font(.system(size: 12)).foregroundStyle(secondary).lineLimit(1)
                 }
-            } status: {
-                Text(reader.libraryLabel(for: item, library: model.books))
-                    .font(.system(size: 12)).foregroundStyle(secondary).lineLimit(1)
-            } format: {
-                Text(item.formatLabel).font(.system(size: 11, weight: .semibold)).tracking(0.7)
-                    .foregroundStyle(secondary).lineLimit(1)
             }
-            .padding(.vertical, 7).padding(.horizontal, 14)
-            .background(selected ? SmallibreTheme.accent : .clear, in: .rect(cornerRadius: 6))
-            .contentShape(.rect)
+        } status: {
+            Text(reader.libraryLabel(for: item, library: model.books))
+                .font(.system(size: 12)).foregroundStyle(secondary).lineLimit(1)
+        } format: {
+            Text(item.formatLabel).font(.system(size: 11, weight: .semibold)).tracking(0.7)
+                .foregroundStyle(secondary).lineLimit(1)
         }
-        .buttonStyle(.plain)
-        .padding(.vertical, 2).padding(.horizontal, 4)
+        .padding(.vertical, 7).padding(.horizontal, 14)
+        .contentShape(.rect)
         .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-
-    /// The table is hand-built, so modifier-aware clicking is too: a plain click replaces the
-    /// selection, ⌘ or ⇧ extends it.
-    private func select(_ item: ReaderBook) {
-        let flags = NSEvent.modifierFlags
-        guard flags.contains(.command) || flags.contains(.shift) else { reader.selectedIDs = [item.id]; return }
-        if reader.selectedIDs.contains(item.id) { reader.selectedIDs.remove(item.id) } else { reader.selectedIDs.insert(item.id) }
     }
 
     private var actions: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("\(selection.count) selected · ⌘-click to select more")
+                Text("\(selection.count) selected · ⌘-click or ⇧-click to select more")
                     .font(.system(size: 13)).foregroundStyle(SmallibreTheme.text2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Button("Download to library") { reader.run("download", books: selection, model: model) }

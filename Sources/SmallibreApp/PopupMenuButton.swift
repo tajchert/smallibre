@@ -12,23 +12,36 @@ struct PopupMenuItem {
 /// SwiftUI's `Menu` inside a hosted toolbar item draws a non-native popup after a delay.
 struct PopupMenuButton<Label: View>: View {
     let items: [PopupMenuItem]
+    var accessibilityLabel = "Sort books"
     @ViewBuilder let label: () -> Label
 
     var body: some View {
-        label().overlay { Presenter(items: items) }
+        label().accessibilityHidden(true).overlay { Presenter(items: items, accessibilityLabel: accessibilityLabel) }
     }
 
     private struct Presenter: NSViewRepresentable {
         let items: [PopupMenuItem]
-        func makeNSView(context: Context) -> PresenterView { PresenterView() }
-        func updateNSView(_ view: PresenterView, context: Context) { view.items = items }
+        let accessibilityLabel: String
+        func makeNSView(context: Context) -> PresenterView {
+            let button = PresenterView()
+            button.title = ""
+            button.isBordered = false
+            button.setButtonType(.momentaryPushIn)
+            button.target = button
+            button.action = #selector(PresenterView.showMenu)
+            return button
+        }
+        func updateNSView(_ view: PresenterView, context: Context) {
+            view.items = items
+            view.setAccessibilityLabel(accessibilityLabel)
+        }
     }
 
     @MainActor
-    private final class PresenterView: NSView {
+    private final class PresenterView: NSButton {
         var items: [PopupMenuItem] = []
 
-        override func mouseDown(with event: NSEvent) {
+        @objc func showMenu() {
             let menu = NSMenu()
             for item in items {
                 let entry = ActionItem(title: item.title, action: item.action)

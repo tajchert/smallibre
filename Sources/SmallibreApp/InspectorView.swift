@@ -46,13 +46,11 @@ struct InspectorView: View {
                 .frame(maxWidth: .infinity).padding(.top, 10)
 
                 VStack(spacing: 8) {
-                    if model.reader.folder != nil {
-                        Button { model.reader.sendToDevice(book, model: model) } label: {
-                            actionLabel(model.reader.deviceMatch(book) == nil ? "Send to Kindle" : "On Kindle · Send Again", Glyph.send)
-                        }
-                        .buttonStyle(.accentAction(height: 30, fillsWidth: true))
-                        .disabled(model.operation != nil || model.reader.busy || !model.reader.libraryReady || model.reader.deviceMatch(book) != nil)
+                    Button { model.reader.sendToDevice(book, model: model) } label: {
+                        actionLabel(model.reader.deviceMatch(book) == nil ? "Send to Kindle" : "On Kindle · Send Again", Glyph.send)
                     }
+                    .buttonStyle(.accentAction(height: 30, fillsWidth: true))
+                    .disabled(model.operation != nil || model.reader.busy || !model.reader.libraryReady || model.reader.deviceMatch(book) != nil)
                     Button { model.openPreview(book) } label: { actionLabel("Preview Book", Glyph.book) }
                         .buttonStyle(.control(height: 28, fillsWidth: true))
                         .disabled(book.metadata.format != "EPUB" || model.operation != nil)
