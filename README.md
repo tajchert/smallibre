@@ -2,8 +2,6 @@
 
 # Smallibre
 
-**Your books. Your Mac. Your reader.**
-
 A small, native macOS ebook manager for a simpler reading routine.
 
 macOS 14+ · Apple Silicon · Free & open source
@@ -12,7 +10,7 @@ macOS 14+ · Apple Silicon · Free & open source
 
 </div>
 
-Bring your ebooks together, make them comfortable to read, and take them to your Kindle. **Smallibre focuses on the everyday essentials:** a tidy library, useful book details, EPUB personalization, and reliable reader transfers.
+A native Calibre alternative: 8.8 MB versus 1 GB, with ebook essentials built in Swift. **Smallibre focuses on the everyday essentials:** a tidy library, useful book details, EPUB personalization, and reliable reader transfers.
 
 ![Smallibre in dark mode with four fictional books and the Small Hours details panel](docs/screenshots/library.jpg)
 
@@ -28,15 +26,10 @@ Bring your ebooks together, make them comfortable to read, and take them to your
 
 ## Why Smallibre?
 
-- **📚 A bookshelf that feels at home on your Mac.** Browse covers, search titles and authors, and sort your EPUB, MOBI, and standalone AZW3 books. Light and dark appearances are built in.
-- **✍️ Better details, more comfortable pages.** Edit metadata, review optional Open Library suggestions, and adjust EPUB fonts, spacing, and margins. Preview chapters before exporting.
-- **📖 From EPUB to Kindle.** Choose **Send to Kindle** to convert a supported EPUB and transfer a verified copy to a mounted Kindle. Prefer a file? **Export File…** offers EPUB or Kindle AZW3.
-- **🔌 Manage the books on your reader.** Browse a mounted device, see which books match your library, download copies, and back up files. Supported device edits and deletions require a verified local backup.
-- **🪶 Small by design.** Written in Swift with a custom book engine. No Calibre installation or additional runtime is needed.
+- **🪶 About 99% smaller.** Just 8.8 MB installed versus Calibre’s 1.15 GB in the comparison below, with no additional runtime.
+- **🍎 Native performance, modern Mac UI.** Built in Swift with system frameworks, native controls, keyboard shortcuts, and light and dark appearances.
 
 ## Small app, small footprint
-
-Smallibre aims to keep the download and installation light. For the versions measured below, it is **about 99% smaller** than Calibre in both categories. Calibre offers a much broader toolkit; Smallibre deliberately focuses on a smaller set of macOS reading tasks.
 
 ![App size comparison in decimal MB: Smallibre downloads at 3.2 MB and installs at 8.8 MB; Calibre downloads at 344.4 MB and installs at 1153.3 MB](docs/screenshots/app-size.svg)
 
@@ -44,8 +37,6 @@ Smallibre aims to keep the download and installation light. For the versions mea
 | --- | ---: | ---: |
 | **Smallibre 0.4.1** | **3.2 MB** | **8.8 MB** |
 | Calibre 9.14.0 | 344.4 MB | 1,153.3 MB |
-
-*Measured September 11, 2026; decimal MB. Downloads are the ZIP/DMG used by the casks; installed sizes count app-bundle file bytes, excluding book libraries and caches. Smallibre is arm64; Calibre is a universal Intel/Apple Silicon bundle. [Sources and measurement details](docs/app-size-comparison.md).*
 
 ## 🚀 Install
 
