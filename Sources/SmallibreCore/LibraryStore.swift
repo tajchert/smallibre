@@ -22,6 +22,28 @@ public struct LibraryBook: Identifiable, Codable, Sendable, Equatable {
     public var originalFilename: String
     public var hash: String
     public var typography: TypographySettings
+    public var organization: BookOrganization = .init()
+
+    public init(id: UUID, metadata: BookMetadata, addedAt: Date, byteCount: Int, originalFilename: String,
+                hash: String, typography: TypographySettings, organization: BookOrganization = .init()) {
+        self.id = id; self.metadata = metadata; self.addedAt = addedAt; self.byteCount = byteCount
+        self.originalFilename = originalFilename; self.hash = hash; self.typography = typography
+        self.organization = organization
+    }
+    private enum CodingKeys: String, CodingKey {
+        case id, metadata, addedAt, byteCount, originalFilename, hash, typography, organization
+    }
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        metadata = try c.decode(BookMetadata.self, forKey: .metadata)
+        addedAt = try c.decode(Date.self, forKey: .addedAt)
+        byteCount = try c.decode(Int.self, forKey: .byteCount)
+        originalFilename = try c.decode(String.self, forKey: .originalFilename)
+        hash = try c.decode(String.self, forKey: .hash)
+        typography = try c.decode(TypographySettings.self, forKey: .typography)
+        organization = try c.decodeIfPresent(BookOrganization.self, forKey: .organization) ?? .init()
+    }
 }
 
 public struct ImportResult: Sendable { public let book: LibraryBook; public let isDuplicate: Bool }
@@ -59,7 +81,19 @@ public actor LibraryStore {
         try database.save(book, insert: true)
         return ImportResult(book: book, isDuplicate: false)
     }
-    public func books(search: String = "") throws -> [LibraryBook] { try database.books(matching: search) }
+    public func books(search: String = "") throws -> [LibraryBook] {
+        let books = try database.books()
+        return search.isEmpty ? books : books.filter { LibraryQuery(text: search).matches($0) }
+    }
+    public func savedFilters() throws -> [SavedLibraryFilter] { try database.savedFilters() }
+    public func saveFilter(_ filter: SavedLibraryFilter) throws {
+        var filter = filter
+        filter.name = filter.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !filter.name.isEmpty else { throw BookError.invalid("Give the saved filter a name.") }
+        guard ["all", "prepared", "EPUB", "MOBI", "AZW3"].contains(filter.query.collection) else { throw BookError.invalid("Choose a library collection for this filter.") }
+        try database.saveFilter(filter)
+    }
+    public func deleteFilter(id: UUID) throws { try database.deleteFilter(id: id) }
     public func update(_ book: LibraryBook) throws {
         var saved = try requireBook(book.id)
         guard !book.metadata.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw BookError.invalid("A book needs a title.") }
@@ -68,6 +102,7 @@ public actor LibraryStore {
         saved.metadata.language = book.metadata.language
         saved.metadata.publisher = book.metadata.publisher
         saved.metadata.description = book.metadata.description
+        saved.organization = try book.organization.normalized()
         saved.typography = book.typography
         if saved.metadata.format != "EPUB", saved.typography.enabled { throw BookError.unsupported("Typography editing currently supports EPUB. MOBI/AZW3 files export unchanged.") }
         if saved.typography.enabled {
@@ -75,6 +110,14 @@ public actor LibraryStore {
             guard try EPUBBook(data: Data(contentsOf: originalLocation(saved))).allowsTypography else { throw BookError.unsupported("This book uses fixed layout, scripts or media overlays. Its original typography must be preserved.") }
         }
         try database.save(saved, insert: false)
+    }
+    /// Reread each record under one transaction; a failure never leaves half a batch saved.
+    public func updateBooks(ids: [UUID], edit: BulkMetadataEdit) throws {
+        try database.transaction {
+            var seen = Set<UUID>()
+            let updated = try ids.filter { seen.insert($0).inserted }.map { try edit.applying(to: requireBook($0)) }
+            for book in updated { try database.save(book, insert: false) }
+        }
     }
     public func originalURL(for id: UUID) throws -> URL { originalLocation(try requireBook(id)) }
     public func supportsTypography(for id: UUID) throws -> Bool {

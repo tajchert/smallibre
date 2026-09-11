@@ -46,8 +46,8 @@ struct LibraryCommands: Commands {
         CommandMenu("Book") {
             Button("Preview") { if let selected { model?.openPreview(selected) } }
                 .keyboardShortcut("r").disabled(selected?.metadata.format != "EPUB")
-            Button("Edit Details…") { model?.editing = selected }
-                .keyboardShortcut("i").disabled(selected == nil)
+            Button("Edit Details…") { model?.editSelectedBooks() }
+                .keyboardShortcut("i").disabled(model?.selectedLibraryBooks.isEmpty != false)
             Button("Export File…") { if let selected { model?.export(selected) } }
                 .keyboardShortcut("e").disabled(selected == nil || model?.operation != nil)
             Button("Show Original in Finder") { if let selected { model?.revealOriginal(selected) } }

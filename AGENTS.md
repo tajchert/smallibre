@@ -15,7 +15,7 @@ Read the current code and README before using older design plans. Documents unde
 | `Sources/SmallibreReaderHelper` | Separate executable for potentially blocking mounted-device I/O; JSON request/response via `ReaderClient`. |
 | `Sources/CSQLite`, `Sources/CZlib` | System library module maps; no downloaded package dependencies. |
 | `Tests/SmallibreCoreTests` | Core regression tests and independently authored fixtures. |
-| `Tests/SmallibreAppTests` | App startup/reader gating regression tests. |
+| `Tests/SmallibreAppTests` | Library selection, editing, startup and reader gating regression tests. |
 | `scripts/build-app.sh`, `Resources/Info.plist` | Release bundle assembly, helper inclusion, icon generation, identifiers and versions. |
 
 `LibraryStore` is an actor owning library operations and its SQLite wrapper. Import stages a file, hashes it, detects/validates its format, deduplicates by SHA-256, saves its immutable original, and then inserts its database record. `EPUBEditor` prepares a separate archive; MOBI/AZW3 library exports keep original bytes. `MOBIMetadataEditor` only rewrites supported standalone device metadata, not book content.
@@ -27,6 +27,9 @@ Never put `fixedSize(horizontal: false, vertical: true)` on text inside a `Navig
 ## Invariants to preserve
 
 - Keep imported originals immutable. Never overwrite an export destination. Back up and verify before device deletion or metadata replacement.
+- Keep `BookOrganization` (tags, series/number, read state) library-only; organization edits must not change export bytes or conversion identity. Older records default to empty organization and unread.
+- Bulk edits apply only explicitly chosen fields to visible selected books, rereading records and saving atomically. Keep single-book actions disabled for multiple selections and range anchors consistent across grid/list views.
+- Use `LibraryQuery` for library search/filter semantics. Saved views persist query rules per library, not book IDs; device search remains separate.
 - Identify books by bytes, not title. Revalidate file hashes, connection tokens and root identity before acting on cached device selections.
 - Keep device I/O in the helper. Preserve path containment, symlink rejection and descriptor-relative mutation checks; do not simplify them to unchecked path operations.
 - Preserve sidecars, annotations and device databases. Deletes are nonrecursive and apply only to selected files. KFX main-file backups are not complete package backups.

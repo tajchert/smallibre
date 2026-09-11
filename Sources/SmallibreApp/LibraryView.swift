@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import SmallibreCore
 
 struct LibraryView: View {
@@ -55,6 +56,8 @@ struct LibraryView: View {
             model.importURLs(urls); return true
         } isTargeted: { dropTarget = $0 }
         .overlay { if dropTarget { RoundedRectangle(cornerRadius: 12).stroke(SmallibreTheme.accent, style: StrokeStyle(lineWidth: 3, dash: [8])).padding(8).allowsHitTesting(false) } }
+        .sheet(isPresented: $model.namingFilter) { SaveLibraryFilterView(model: model) }
+        .sheet(item: $model.bulkEditing) { selection in BulkMetadataView(model: model, selection: selection) }
         .sheet(item: $model.editing) { book in EditBookView(model: model, book: book) }
         .sheet(item: $model.preview) { PreviewView(content: $0) }
         .sheet(item: $model.exportBook) { book in TransferView(model: model, book: book, localExport: true) }
@@ -71,7 +74,7 @@ struct LibraryView: View {
     private var searchField: some View {
         HStack(spacing: 6) {
             Image(systemName: Glyph.search).font(.system(size: 12, weight: .medium)).foregroundStyle(SmallibreTheme.text3)
-            TextField("Search books or authors", text: $model.search)
+            TextField(model.filter == "device" ? "Search books or authors" : "Search library", text: $model.search)
                 .textFieldStyle(.plain).font(.system(size: 13)).foregroundStyle(SmallibreTheme.text)
                 .focused($searchFocused)
                 .onExitCommand { model.search = ""; searchFocused = false }
@@ -85,11 +88,11 @@ struct LibraryView: View {
         .padding(.horizontal, 9).frame(width: 230, height: 28)
         .background(SmallibreTheme.field, in: .rect(cornerRadius: 7))
         .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(searchFocused ? SmallibreTheme.accent : SmallibreTheme.controlBorder, lineWidth: 1) }
-        .help("Search books or authors (⌘F)")
+        .help(model.filter == "device" ? "Search books or authors (⌘F)" : "Search titles, authors, publishers, descriptions, identifiers, tags and series (⌘F)")
     }
 
     private var sortMenu: some View {
-        PopupMenuButton(items: AppModel.Sort.allCases.map { sort in
+        PopupMenuButton(items: AppModel.Sort.allCases.filter { model.filter != "device" || $0 != .series }.map { sort in
             let active = model.sort == sort
             let title = active ? "\(sort.rawValue) \(model.sortAscending ? "↑" : "↓")" : sort.rawValue
             return PopupMenuItem(title: title, checked: active) { model.selectSort(sort) }
@@ -112,6 +115,7 @@ struct LibraryView: View {
     // MARK: Sidebar
 
     private var sidebar: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: Glyph.library).font(.system(size: 22, weight: .regular)).foregroundStyle(SmallibreTheme.accent)
@@ -128,6 +132,11 @@ struct LibraryView: View {
             SidebarRow(title: "Personalized", systemImage: Glyph.personalized, count: model.books.filter(\.typography.enabled).count,
                        selected: model.filter == "prepared") { model.filter = "prepared" }
 
+            SidebarRow(title: "Unread", systemImage: "book", count: model.books.filter { !$0.organization.isRead }.count,
+                       selected: model.filter == "unread") { model.filter = "unread" }
+            SidebarRow(title: "Read", systemImage: "checkmark.circle", count: model.books.filter { $0.organization.isRead }.count,
+                       selected: model.filter == "read") { model.filter = "read" }
+
             SidebarSectionHeader(title: "Formats").padding(.top, 16).padding(.bottom, 4)
             ForEach(["EPUB", "MOBI", "AZW3"], id: \.self) { format in
                 SidebarRow(title: format == "AZW3" ? "Kindle / AZW3" : format, systemImage: Glyph.format,
@@ -135,6 +144,14 @@ struct LibraryView: View {
                            selected: model.filter == format) { model.filter = format }
             }
 
+            if !model.savedFilters.isEmpty {
+                SidebarSectionHeader(title: "Saved views").padding(.top, 16).padding(.bottom, 4)
+                ForEach(model.savedFilters) { saved in
+                    SidebarRow(title: saved.name, systemImage: "line.3.horizontal.decrease.circle",
+                               selected: model.currentQuery == saved.query) { model.applyFilter(saved) }
+                        .contextMenu { Button("Delete Saved View", role: .destructive) { model.deleteSavedFilter(saved) } }
+                }
+            }
             SidebarSectionHeader(title: "Device").padding(.top, 16).padding(.bottom, 4)
             if model.reader.folder != nil {
                 SidebarRow(title: "Kindle", systemImage: Glyph.device, count: model.reader.books.count, online: true,
@@ -165,6 +182,7 @@ struct LibraryView: View {
         }
         .padding(.horizontal, 10).padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
         .background(SmallibreTheme.sidebar)
     }
 
@@ -187,15 +205,19 @@ struct LibraryView: View {
 
     private var shelf: some View {
         VStack(spacing: 0) {
+            LibraryFilterBar(model: model)
             if model.books.isEmpty {
                 emptyLibrary
             } else if model.visibleBooks.isEmpty {
                 hero(title: model.search.isEmpty ? "Nothing here yet" : "No matches",
                      message: model.search.isEmpty ? "No books in this view." : "Nothing in this view matches “\(model.search)”.")
             } else {
-                grid
+                if model.libraryList { bookList } else { grid }
             }
             footer
+        }
+        .onChange(of: model.visibleBooks.map(\.id)) { _, ids in
+            model.librarySelection.formIntersection(Set(ids))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(SmallibreTheme.content)
@@ -211,15 +233,52 @@ struct LibraryView: View {
         }
     }
 
+    private var bookList: some View {
+        List(selection: $model.librarySelection) {
+            ForEach(model.visibleBooks) { book in
+                HStack(spacing: 12) {
+                    Image(systemName: book.organization.isRead ? "checkmark.circle" : "book")
+                        .foregroundStyle(SmallibreTheme.text3)
+                        .accessibilityLabel(book.organization.isRead ? "Read" : "Unread")
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(book.metadata.title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                        Text(book.metadata.authors.joined(separator: ", ")).font(.system(size: 12)).lineLimit(1)
+                    }
+                    Spacer(minLength: 4)
+                    Text(book.organization.seriesLabel).font(.system(size: 12)).lineLimit(1).frame(maxWidth: 160, alignment: .trailing)
+                    Text(book.metadata.format).font(.system(size: 11)).frame(width: 45, alignment: .trailing)
+                }
+                .padding(.vertical, 5).tag(book.id)
+            }
+        }
+        .listStyle(.inset).scrollContentBackground(.hidden)
+        .contextMenu(forSelectionType: UUID.self) { ids in
+            Button("Edit details…") {
+                model.librarySelection = ids
+                model.editSelectedBooks()
+            }.disabled(ids.isEmpty)
+        } primaryAction: { ids in
+            model.librarySelection = ids
+            model.editSelectedBooks()
+        }
+    }
+
     private func cell(_ book: LibraryBook) -> some View {
-        let selected = model.selection == book.id
+        let selected = model.librarySelection.contains(book.id)
         let author = book.metadata.authors.isEmpty ? "Unknown author" : book.metadata.authors.joined(separator: ", ")
         // A Button keeps the cell reachable from the keyboard and assistive technology; the
         // double click that opens the sheet rides alongside it rather than replacing it.
-        return Button { model.selection = book.id } label: { cellLabel(book, author: author, selected: selected) }
+        return Button {
+            let modifiers = NSEvent.modifierFlags
+            model.selectLibraryBook(book.id, extending: modifiers.contains(.shift), toggling: modifiers.contains(.command))
+        } label: { cellLabel(book, author: author, selected: selected) }
             .buttonStyle(.plain)
             .simultaneousGesture(TapGesture(count: 2).onEnded { model.editing = book })
             .contextMenu {
+                if model.selectedLibraryBooks.count > 1, selected {
+                    Button("Edit selected books…") { model.editSelectedBooks() }
+                    Divider()
+                }
                 Button("Preview", systemImage: Glyph.book) { model.openPreview(book) }.disabled(book.metadata.format != "EPUB")
                 Button("Edit details & typography", systemImage: Glyph.details) { model.editing = book }
                 Button("Export book…", systemImage: Glyph.send) { model.export(book) }

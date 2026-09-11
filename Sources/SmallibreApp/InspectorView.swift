@@ -6,7 +6,15 @@ struct InspectorView: View {
 
     var body: some View {
         Group {
-            if let book = model.selected {
+            if model.selectedLibraryBooks.count > 1 {
+                VStack(spacing: 12) {
+                    Image(systemName: "books.vertical").font(.system(size: 30)).foregroundStyle(SmallibreTheme.text3)
+                    Text("\(model.selectedLibraryBooks.count) books selected").font(.headline)
+                    Button("Edit Selected Details…") { model.editSelectedBooks() }.buttonStyle(.accentAction)
+                    Text("Choose which fields to change for all selected books.")
+                        .font(.system(size: 12)).foregroundStyle(SmallibreTheme.text2).multilineTextAlignment(.center)
+                }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let book = model.selected {
                 bookDetails(book)
             } else if let book = model.selectedDeviceBook {
                 deviceDetails(book)
@@ -74,6 +82,9 @@ struct InspectorView: View {
                     detailRow("Language", book.metadata.language.isEmpty ? "Not specified" : Locale.current.localizedString(forLanguageCode: book.metadata.language) ?? book.metadata.language)
                     if !book.metadata.publisher.isEmpty { detailRow("Publisher", book.metadata.publisher) }
                     if let year = book.metadata.publishedYear { detailRow("Published", year) }
+                    detailRow("Reading", book.organization.isRead ? "Read" : "Unread")
+                    if !book.organization.series.isEmpty { detailRow("Series", book.organization.seriesLabel) }
+                    if !book.organization.tags.isEmpty { detailRow("Tags", book.organization.tags.joined(separator: ", ")) }
                     detailRow("Added", book.addedAt.formatted(date: .abbreviated, time: .omitted))
                     GridRow {
                         Text("File").foregroundStyle(SmallibreTheme.text3)
@@ -192,10 +203,16 @@ struct EditBookView: View {
     @Bindable var model: AppModel
     @State var book: LibraryBook
     @State private var authors: String
+    @State private var tags: String
+    @State private var seriesNumber: String
     @State private var saving = false
+    @State private var validationError: String?
     @State private var supportsTypography: Bool?
     @Environment(\.dismiss) private var dismiss
-    init(model: AppModel, book: LibraryBook) { self.model = model; self._book = State(initialValue: book); self._authors = State(initialValue: book.metadata.authors.joined(separator: "; ")) }
+    init(model: AppModel, book: LibraryBook) { self.model = model; self._book = State(initialValue: book); self._authors = State(initialValue: book.metadata.authors.joined(separator: "; "))
+        self._tags = State(initialValue: book.organization.tags.joined(separator: "; "))
+        self._seriesNumber = State(initialValue: book.organization.seriesNumber.map { String($0) } ?? "")
+    }
 
     private var isEPUB: Bool { book.metadata.format == "EPUB" }
     /// nil while the store is still answering; the controls stay inert until it does.
@@ -224,6 +241,21 @@ struct EditBookView: View {
                             Hairline()
                             FormRow(label: "Publisher") { DesignTextField(placeholder: "Publisher", text: $book.metadata.publisher, alignment: .trailing) }
                         }
+                    }
+                    section("Library organization") {
+                        FormGroup {
+                            FormRow(label: "Tags") { DesignTextField(placeholder: "Separate tags with a semicolon", text: $tags, alignment: .trailing) }
+                            Hairline()
+                            FormRow(label: "Series") { DesignTextField(placeholder: "Series name", text: $book.organization.series, alignment: .trailing) }
+                            Hairline()
+                            FormRow(label: "Number") { DesignTextField(placeholder: "Optional, e.g. 1.5", text: $seriesNumber, alignment: .trailing) }
+                            Hairline()
+                            preferenceRow("Finished reading") {
+                                Toggle("Finished reading", isOn: $book.organization.isRead).toggleStyle(.switch).labelsHidden()
+                            }
+                        }
+                        Text("Saved in this library; not written into exported books.")
+                            .font(.system(size: 12)).foregroundStyle(SmallibreTheme.text3)
                     }
                     section("Description") {
                         TextEditor(text: $book.metadata.description)
@@ -283,6 +315,10 @@ struct EditBookView: View {
             }
 
             VStack(spacing: 0) {
+                if let validationError {
+                    Text(validationError).font(.system(size: 12)).foregroundStyle(SmallibreTheme.destructive)
+                        .padding(.horizontal, 20).padding(.vertical, 8)
+                }
                 Hairline()
                 HStack(spacing: 8) {
                     HStack(spacing: 6) {
@@ -291,11 +327,15 @@ struct EditBookView: View {
                     }
                     .font(.system(size: 12)).foregroundStyle(SmallibreTheme.text3)
                     Spacer(minLength: 8)
-                    Button("Cancel") { dismiss() }.buttonStyle(.control).keyboardShortcut(.cancelAction)
+                    Button("Cancel") { dismiss() }.buttonStyle(.control).keyboardShortcut(.cancelAction).disabled(saving)
                     Button("Save Changes") {
+                        let number = seriesNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard number.isEmpty || Double(number) != nil else { validationError = "Enter a valid series number."; return }
+                        book.organization.tags = tags.components(separatedBy: ";")
+                        book.organization.seriesNumber = number.isEmpty ? nil : Double(number)
                         book.metadata.authors = authors.components(separatedBy: ";")
                         saving = true
-                        Task { await model.save(book); saving = false }
+                        Task { validationError = await model.save(book, reportError: false); saving = false }
                     }
                     .buttonStyle(.accentAction()).keyboardShortcut(.defaultAction)
                     .disabled(saving || book.metadata.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -304,6 +344,7 @@ struct EditBookView: View {
             }
             .background(SmallibreTheme.inspector)
         }
+        .interactiveDismissDisabled(saving)
         .frame(width: 600, height: 650)
         .background(SmallibreTheme.sheet).tint(SmallibreTheme.accent)
         .task {

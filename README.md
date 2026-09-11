@@ -80,17 +80,31 @@ brew upgrade --cask smallibre
 
 There is no automatic mirroring. If a transfer is interrupted, check **Backups & history** and refresh the reader before retrying; cancellation does not prove that nothing was written.
 
+## Organize your library
+
+In **Details & Typography…**, add tags (separated by semicolons), a series and optional number,
+and mark a book read or unread. These fields stay in your library; exports preserve the book’s
+embedded organization metadata. Sort by **Series** to follow reading order.
+
+Use **Show list** for native multiple selection, or Command-click / Shift-click covers. Choose
+**Edit Selected Details…** (⌘I) to change authors, publisher, language, tags, series or read state
+for the selection. Only checked fields change; a failed batch leaves every book unchanged.
+
+Search matches words across titles, authors, publishers, descriptions, identifiers, tags and
+series. Combine search with **Filters** and a format, then choose **Save View…** to keep it in the
+sidebar. Saved views update as your library changes; right-click a saved view to delete it.
+
 ## Smallibre or Calibre?
 
-**Choose Smallibre for a focused native Mac workflow.** [Calibre](https://manual.calibre-ebook.com/) offers a broader toolkit, especially for advanced library management and conversion.
+**Choose Smallibre for a focused native Mac workflow.** Tags, series, read/unread, bulk metadata edits and saved views are built in. The remaining differences from [Calibre](https://manual.calibre-ebook.com/) are below.
 
 | Feature | Smallibre today | Calibre |
 | --- | --- | --- |
 | Conversion | Supported EPUB → AZW3 | Many formats, advanced controls, bulk conversion |
-| Organization | Covers, search, sorting, format filters | Also tags, series, ratings, custom fields, saved searches |
-| Bulk editing | Individual book edits | Metadata and cover updates across many books |
+| Advanced organization | Tags, series, read/unread and saved views | Also ratings, custom fields and advanced search expressions |
+| Cover editing | Imported covers are read-only | Replace or download covers, individually or in bulk |
 | Book formats | Separate imports | Multiple formats grouped under one book |
-| Reading & search | EPUB preview; title/author search | Full reader, highlights, bookmarks, full-text search |
+| Reading & search | EPUB preview; metadata, tag and series search | Full reader, highlights, bookmarks, full-text search |
 | Content editing | Metadata and EPUB typography | EPUB/AZW3 HTML and CSS editor |
 | Reader connections | Mounted drives/folders | Broader device support, MTP and wireless/email options |
 | Extras | Local library | Web library server, news downloads, plugins, CLI tools |
@@ -104,7 +118,7 @@ Next priorities:
 
 - Broader EPUB conversion compatibility and more testing on real readers.
 - Reliable MTP connections and transfers.
-- More library-management tools and measured large-library performance.
+- Ratings, richer library-management tools and measured large-library performance.
 - Developer ID signed, notarized downloads and release automation.
 
 ## Build & contribute
@@ -129,13 +143,13 @@ The build targets your Mac’s architecture and signs the app locally. You can a
 | ⌘O | Add books |
 | ⌘K / ⌘F | Search all books / the current collection |
 | ⌘R | Preview the selected EPUB |
-| ⌘I | Edit the selected book’s details |
+| ⌘I | Edit details for the selected book or books |
 | ⌘E | Export a file |
 | ⇧⌘F | Reveal the original in Finder |
 | ⇧⌘R | Refresh the reader |
 | ⌘1–⌘6 | Switch library collections and reader view |
 
-Book commands require a selected book. The app’s native menus list all shortcuts.
+Single-book commands require exactly one selected book; ⌘I also supports multiple selections. The app’s native menus list all shortcuts.
 
 </details>
 

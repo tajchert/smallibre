@@ -15,12 +15,24 @@ final class Database: @unchecked Sendable {
         try execute("PRAGMA synchronous=FULL")
         try execute("CREATE TABLE IF NOT EXISTS books (id TEXT PRIMARY KEY, hash TEXT UNIQUE NOT NULL, payload BLOB NOT NULL, title TEXT NOT NULL, authors TEXT NOT NULL, added REAL NOT NULL)")
         try execute("CREATE INDEX IF NOT EXISTS books_title ON books(title COLLATE NOCASE)")
+        try execute("CREATE TABLE IF NOT EXISTS saved_filters (id TEXT PRIMARY KEY, name TEXT NOT NULL, payload TEXT NOT NULL)")
         try execute("PRAGMA user_version=1")
     }
     deinit { sqlite3_close(handle) }
 
     func execute(_ sql: String) throws {
         guard sqlite3_exec(handle, sql, nil, nil, nil) == SQLITE_OK else { throw failure() }
+    }
+    func transaction<T>(_ body: () throws -> T) throws -> T {
+        try execute("BEGIN IMMEDIATE")
+        do {
+            let result = try body()
+            try execute("COMMIT")
+            return result
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
     }
     private func failure() -> BookError { .invalid("Library database: \(String(cString: sqlite3_errmsg(handle)))") }
     private func statement(_ sql: String) throws -> OpaquePointer {
@@ -52,6 +64,31 @@ final class Database: @unchecked Sendable {
             guard status == SQLITE_ROW, let bytes = sqlite3_column_blob(query, 0) else { throw failure() }
             result.append(try JSONDecoder().decode(LibraryBook.self, from: Data(bytes: bytes, count: Int(sqlite3_column_bytes(query, 0)))))
         }
+    }
+    func savedFilters() throws -> [SavedLibraryFilter] {
+        let query = try statement("SELECT payload FROM saved_filters ORDER BY name COLLATE NOCASE, id")
+        defer { sqlite3_finalize(query) }
+        var result: [SavedLibraryFilter] = []
+        while true {
+            let status = sqlite3_step(query)
+            if status == SQLITE_DONE { return result }
+            guard status == SQLITE_ROW, let bytes = sqlite3_column_text(query, 0) else { throw failure() }
+            result.append(try JSONDecoder().decode(SavedLibraryFilter.self, from: Data(String(cString: bytes).utf8)))
+        }
+    }
+    func saveFilter(_ filter: SavedLibraryFilter) throws {
+        let query = try statement("INSERT INTO saved_filters(id,name,payload) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,payload=excluded.payload")
+        defer { sqlite3_finalize(query) }
+        bind(filter.id.uuidString, at: 1, to: query)
+        bind(filter.name, at: 2, to: query)
+        bind(String(decoding: try JSONEncoder().encode(filter), as: UTF8.self), at: 3, to: query)
+        guard sqlite3_step(query) == SQLITE_DONE else { throw failure() }
+    }
+    func deleteFilter(id: UUID) throws {
+        let query = try statement("DELETE FROM saved_filters WHERE id=?")
+        defer { sqlite3_finalize(query) }
+        bind(id.uuidString, at: 1, to: query)
+        guard sqlite3_step(query) == SQLITE_DONE else { throw failure() }
     }
     func book(column: String, value: String) throws -> LibraryBook? {
         precondition(column == "id" || column == "hash")

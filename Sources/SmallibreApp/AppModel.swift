@@ -7,9 +7,79 @@ import SmallibreCore
 final class AppModel {
     let reader = ReaderModel()
     var books: [LibraryBook] = []
-    var selection: UUID?
+    var librarySelection: Set<UUID> = [] {
+        didSet {
+            if librarySelection.count == 1 { selectionAnchor = librarySelection.first }
+            else if librarySelection.isEmpty { selectionAnchor = nil }
+        }
+    }
+    private var selectionAnchor: UUID?
+    var selection: UUID? {
+        get { librarySelection.count == 1 ? librarySelection.first : nil }
+        set { librarySelection = Set(newValue.map { [$0] } ?? []); selectionAnchor = newValue }
+    }
+    var bulkEditing: BulkEditSelection?
+    var libraryList = false
+    var selectedLibraryBooks: [LibraryBook] {
+        filter == "device" ? [] : visibleBooks.filter { librarySelection.contains($0.id) }
+    }
+    func selectLibraryBook(_ id: UUID, extending: Bool = false, toggling: Bool = false) {
+        let ids = visibleBooks.map(\.id)
+        guard let end = ids.firstIndex(of: id) else { return }
+        if extending, let anchor = selectionAnchor, let start = ids.firstIndex(of: anchor) {
+            let range = Set(ids[min(start, end)...max(start, end)])
+            librarySelection = toggling ? librarySelection.union(range) : range
+        } else if toggling {
+            if librarySelection.contains(id) { librarySelection.remove(id) } else { librarySelection.insert(id) }
+            selectionAnchor = id
+        } else { selection = id }
+    }
+    func editSelectedBooks() {
+        guard commandsAvailable else { return }
+        let books = selectedLibraryBooks
+        if books.count == 1 { editing = books[0] }
+        else if books.count > 1 { bulkEditing = BulkEditSelection(ids: books.map(\.id)) }
+    }
+    func saveBulk(_ edit: BulkMetadataEdit, ids: [UUID]) async throws {
+        guard let store else { throw BookError.invalid("The library is unavailable.") }
+        try await store.updateBooks(ids: ids, edit: edit)
+        await reload()
+        bulkEditing = nil
+        status = "Updated \(ids.count) books · originals preserved"
+    }
     var filter = "all"
     var search = ""
+    var readState: LibraryQuery.ReadState = .any
+    var tagFilter = ""
+    var seriesFilter = ""
+    var savedFilters: [SavedLibraryFilter] = []
+    var namingFilter = false
+    var currentQuery: LibraryQuery {
+        LibraryQuery(text: search, collection: ["read", "unread"].contains(filter) ? "all" : filter,
+                     readState: filter == "read" ? .read : filter == "unread" ? .unread : readState,
+                     tag: tagFilter, series: seriesFilter)
+    }
+    var allTags: [String] { Array(Set(books.flatMap { $0.organization.tags })).sorted { $0.localizedStandardCompare($1) == .orderedAscending } }
+    var allSeries: [String] { Array(Set(books.map { $0.organization.series }.filter { !$0.isEmpty })).sorted { $0.localizedStandardCompare($1) == .orderedAscending } }
+    func applyFilter(_ saved: SavedLibraryFilter) {
+        filter = saved.query.collection; search = saved.query.text; readState = saved.query.readState
+        tagFilter = saved.query.tag; seriesFilter = saved.query.series
+        librarySelection = []
+    }
+    func clearOrganizationFilters() { readState = .any; tagFilter = ""; seriesFilter = "" }
+    func saveCurrentFilter(name: String) async throws {
+        guard let store else { throw BookError.invalid("The library is unavailable.") }
+        try await store.saveFilter(SavedLibraryFilter(name: name, query: currentQuery))
+        savedFilters = try await store.savedFilters()
+        namingFilter = false
+    }
+    func deleteSavedFilter(_ saved: SavedLibraryFilter) {
+        guard let store else { return }
+        Task {
+            do { try await store.deleteFilter(id: saved.id); savedFilters = try await store.savedFilters() }
+            catch { self.error = error.localizedDescription }
+        }
+    }
     var sort: Sort = .recent
     var sortReversed = false
     var sortAscending: Bool { (sort != .recent) != sortReversed }
@@ -33,7 +103,7 @@ final class AppModel {
     var importTask: Task<Void, Never>?
     var store: LibraryStore?
     let root: URL
-    enum Sort: String, CaseIterable { case title = "Title", author = "Author", recent = "Recently added", format = "Format" }
+    enum Sort: String, CaseIterable { case title = "Title", author = "Author", recent = "Recently added", format = "Format", series = "Series" }
 
     init(rootOverride: URL? = nil, initialize: Bool = true) {
         let arguments = ProcessInfo.processInfo.arguments
@@ -67,10 +137,11 @@ final class AppModel {
         if filter == "device" {
             return reader.libraryBook(deviceHash: selectedDeviceBook?.hash, library: books)
         }
-        return books.first { $0.id == selection }
+        let selected = selectedLibraryBooks
+        return selected.count == 1 ? selected.first : nil
     }
     var commandsAvailable: Bool {
-        store != nil && editing == nil && preview == nil &&
+        store != nil && editing == nil && bulkEditing == nil && !namingFilter && preview == nil &&
         transferBook == nil && exportBook == nil && metadataBook == nil && error == nil
     }
     func exportUsesReader(_ destination: URL) -> Bool {
@@ -87,18 +158,23 @@ final class AppModel {
         return selected
     }
     func prepareSearch(global: Bool) {
-        if global { filter = "all" }
+        if global { filter = "all"; clearOrganizationFilters() }
     }
     var visibleBooks: [LibraryBook] {
-        let filtered = books.filter {
-            (filter == "all" || (filter == "prepared" ? $0.typography.enabled : $0.metadata.format == filter)) &&
-            (search.isEmpty || ($0.metadata.title + " " + $0.metadata.authors.joined(separator: " ")).localizedStandardContains(search))
-        }
+        let query = currentQuery
+        let filtered = books.filter { query.matches($0) }
         let ordered = filtered.sorted {
             switch sort {
             case .recent: return $0.addedAt > $1.addedAt
             case .title: return $0.metadata.title.localizedStandardCompare($1.metadata.title) == .orderedAscending
             case .author: return $0.metadata.authors.joined().localizedStandardCompare($1.metadata.authors.joined()) == .orderedAscending
+            case .series:
+                let left = $0.organization, right = $1.organization
+                if left.series.isEmpty != right.series.isEmpty { return !left.series.isEmpty }
+                let comparison = left.series.localizedStandardCompare(right.series)
+                if comparison != .orderedSame { return comparison == .orderedAscending }
+                if left.seriesNumber != right.seriesNumber { return (left.seriesNumber ?? .infinity) < (right.seriesNumber ?? .infinity) }
+                return $0.metadata.title.localizedStandardCompare($1.metadata.title) == .orderedAscending
             case .format:
                 let comparison = $0.metadata.format.localizedStandardCompare($1.metadata.format)
                 return comparison == .orderedSame ? $0.metadata.title.localizedStandardCompare($1.metadata.title) == .orderedAscending : comparison == .orderedAscending
@@ -108,6 +184,8 @@ final class AppModel {
     }
     var collectionTitle: String {
         switch filter {
+        case "read": "Read"
+        case "unread": "Unread"
         case "EPUB": "EPUB"
         case "MOBI": "MOBI"
         case "AZW3": "Kindle / AZW3"
@@ -125,7 +203,7 @@ final class AppModel {
     }
     func reload() async {
         guard let store else { return }
-        do { books = try await store.books() } catch { self.error = error.localizedDescription }
+        do { books = try await store.books(); savedFilters = try await store.savedFilters() } catch { self.error = error.localizedDescription }
     }
     func chooseBooks() {
         let panel = NSOpenPanel()
@@ -159,10 +237,17 @@ final class AppModel {
             importing = false; operation = nil; importTask = nil
         }
     }
-    func save(_ book: LibraryBook) async {
-        guard let store else { return }
-        do { try await store.update(book); await reload(); editing = nil; status = "Changes saved · your original is preserved" }
-        catch { self.error = error.localizedDescription }
+    @discardableResult
+    func save(_ book: LibraryBook, reportError: Bool = true) async -> String? {
+        guard let store else { return "The library is unavailable." }
+        do {
+            try await store.update(book); await reload(); editing = nil
+            status = "Changes saved · your original is preserved"
+            return nil
+        } catch {
+            if reportError { self.error = error.localizedDescription }
+            return error.localizedDescription
+        }
     }
     func export(_ book: LibraryBook, destination: URL? = nil) {
         guard let store, operation == nil else { return }
@@ -240,3 +325,5 @@ final class AppModel {
 }
 
 struct PreviewContent: Identifiable { let id: UUID; let title: String; let epub: EPUBBook }
+
+struct BulkEditSelection: Identifiable { let id = UUID(); let ids: [UUID] }

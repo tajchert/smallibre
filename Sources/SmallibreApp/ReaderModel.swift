@@ -315,7 +315,7 @@ import SmallibreCore
                 let left = $0.formatLabel, right = $1.formatLabel
                 let comparison = left.localizedStandardCompare(right)
                 if comparison != .orderedSame { return comparison == .orderedAscending }
-            case .title: break
+            case .title, .series: break
             }
             let comparison = $0.title.localizedStandardCompare($1.title)
             return comparison == .orderedSame ? $0.relativePath < $1.relativePath : comparison == .orderedAscending
