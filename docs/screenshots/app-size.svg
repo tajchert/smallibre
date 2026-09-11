@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
+<title id="title">Smallibre and Calibre app sizes</title>
+<desc id="desc">Smallibre 0.4.1: 3.2 MB download, 8.8 MB installed. Calibre 9.14.0: 344.4 MB download, 1153.3 MB installed. Separate linear scales, decimal MB.</desc>
+<rect width="1000" height="430" rx="20" fill="#f4f5f0"/>
+<g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" fill="#253b33">
+<text x="40" y="46" font-size="25" font-weight="700">A smaller home for your books</text>
+<text x="40" y="74" font-size="14" fill="#53645d">Release download and installed app size · MB · lower is smaller</text>
+<text x="40" y="125" font-size="18" font-weight="700">Download through Homebrew</text>
+<text x="40" y="173" font-size="15" font-weight="600">Smallibre</text>
+<text x="460" y="173" text-anchor="end" font-size="16" font-weight="700">3.2 MB</text>
+<rect x="40" y="187" width="420" height="24" rx="3" fill="#e1e5df"/>
+<rect x="40" y="187" width="3.394" height="24" rx="1" fill="#387659"/>
+<text x="40" y="259" font-size="15" font-weight="600">Calibre</text>
+<text x="460" y="259" text-anchor="end" font-size="16" font-weight="700">344.4 MB</text>
+<rect x="40" y="273" width="420" height="24" rx="3" fill="#e1e5df"/>
+<rect x="40" y="273" width="361.661" height="24" rx="1" fill="#7e8986"/>
+<text x="40.0" y="329" text-anchor="start" font-size="12" fill="#53645d">0</text>
+<text x="145.0" y="329" text-anchor="middle" font-size="12" fill="#53645d">100</text>
+<text x="250.0" y="329" text-anchor="middle" font-size="12" fill="#53645d">200</text>
+<text x="355.0" y="329" text-anchor="middle" font-size="12" fill="#53645d">300</text>
+<text x="460.0" y="329" text-anchor="end" font-size="12" fill="#53645d">400</text>
+<text x="530" y="125" font-size="18" font-weight="700">Installed app</text>
+<text x="530" y="173" font-size="15" font-weight="600">Smallibre</text>
+<text x="950" y="173" text-anchor="end" font-size="16" font-weight="700">8.8 MB</text>
+<rect x="530" y="187" width="420" height="24" rx="3" fill="#e1e5df"/>
+<rect x="530" y="187" width="3.072" height="24" rx="1" fill="#387659"/>
+<text x="530" y="259" font-size="15" font-weight="600">Calibre</text>
+<text x="950" y="259" text-anchor="end" font-size="16" font-weight="700">1,153.3 MB</text>
+<rect x="530" y="273" width="420" height="24" rx="3" fill="#e1e5df"/>
+<rect x="530" y="273" width="403.648" height="24" rx="1" fill="#7e8986"/>
+<text x="530.0" y="329" text-anchor="start" font-size="12" fill="#53645d">0</text>
+<text x="635.0" y="329" text-anchor="middle" font-size="12" fill="#53645d">300</text>
+<text x="740.0" y="329" text-anchor="middle" font-size="12" fill="#53645d">600</text>
+<text x="845.0" y="329" text-anchor="middle" font-size="12" fill="#53645d">900</text>
+<text x="950.0" y="329" text-anchor="end" font-size="12" fill="#53645d">1,200</text>
+<text x="40" y="383" font-size="13" fill="#53645d">Smallibre 0.4.1 (Apple Silicon) · Calibre 9.14.0 (universal) · September 11, 2026</text>
+<text x="40" y="405" font-size="12" fill="#53645d">App bundles only; excludes books and caches. Each panel has its own linear scale.</text>
+</g></svg>

@@ -4,58 +4,107 @@
 
 **Your books. Your Mac. Your reader.**
 
-A small, native macOS app for organizing ebooks and taking them with you.
+A small, native macOS ebook manager for a simpler reading routine.
 
-macOS 14+ · Swift · GPL-3.0
+macOS 14+ · Apple Silicon · Free & open source
+
+[Install](#-install) · [Reader compatibility](#reader-compatibility) · [Contribute](CONTRIBUTING.md)
 
 </div>
 
-Smallibre brings your ebook library and your connected reader into one place. Add books, tidy their details, adjust EPUB typography, and manage the books on a mounted Kindle—all through a native Mac interface.
+Bring your ebooks together, make them comfortable to read, and take them to your Kindle. **Smallibre focuses on the everyday essentials:** a tidy library, useful book details, EPUB personalization, and reliable reader transfers.
 
-Inspired by Calibre, Smallibre takes a deliberately smaller scope with a custom Swift book engine. The current Apple Silicon app is approximately **8.4 MB**. No Calibre installation or additional runtime is needed.
+![Smallibre in dark mode with four fictional books and the Small Hours details panel](docs/screenshots/library.jpg)
 
-> **Version 0.4.1** refines the redesigned native interface with readable dark-mode buttons, an inline reader-folder selector, and a Finder shortcut beside each library file. Version 0.4.0 introduced the first non-prerelease, light and dark appearance, publication dates, and automatic discovery of an already-mounted Kindle. It includes one-click mounted-Kindle sending, native EPUB-to-AZW3 conversion, font fallback, and local Kindle export. MTP remains at the read-only diagnostic stage. Builds are locally ad-hoc signed, not Developer ID signed or notarized.
+<table>
+  <tr>
+    <td width="33%" align="center" valign="top"><a href="docs/screenshots/preview.jpg"><img src="docs/screenshots/preview.jpg" alt="Preview a chapter of the authored Small Hours demo book" width="100%"></a><br><b>Preview chapters</b></td>
+    <td width="33%" align="center" valign="top"><a href="docs/screenshots/typography.jpg"><img src="docs/screenshots/typography.jpg" alt="Personalize Small Hours with serif text, line spacing, and margins" width="100%"></a><br><b>Make reading yours</b></td>
+    <td width="33%" align="center" valign="top"><a href="docs/screenshots/conversion.jpg"><img src="docs/screenshots/conversion.jpg" alt="A prepared Kindle AZW3 copy of Small Hours with conversion notes" width="100%"></a><br><b>Prepare a Kindle copy</b></td>
+  </tr>
+</table>
 
-## What you can do
+*Actual app screenshots using a disposable library of authored mock books. Click a detail image to enlarge it.*
 
-- **Build your bookshelf.** Import EPUB, MOBI, and standalone AZW3 books. Browse covers, search, and sort your library by title, author, recently added, or format. Identical files are detected automatically. The window follows your Mac's appearance, and the button at the foot of the sidebar switches between light and dark; right-click it to go back to following the system.
-- **Make books yours.** Edit book details, review suggestions from Open Library, and adjust fonts, spacing, and margins in reflowable EPUBs. The inspector shows language, publisher, the publication date the book declares, when you added it, and its original filename. The folder icon beside File reveals the preserved original in Finder.
-- **Send EPUBs to Kindle.** Click **Send to Kindle** to detect a mounted Kindle, convert the EPUB, and send a verified copy. After sending, the device list and the **· ON KINDLE** badge update automatically; the default recent sort shows newly sent books first, and books already on the device show a disabled **On Kindle** button. Folder selection is only needed if automatic detection fails; the fallback also supports EPUB readers. Use **Export File…** (⌘E, or the book's context menu) to choose a file format and destination folder. EPUB books can be exported as EPUB or Kindle AZW3; MOBI/AZW3 books retain their original format. Supported EPUBs keep saved metadata and typography changes.
-- **Take a look inside.** Preview EPUB chapters before exporting a new copy.
-- **See what’s on your Kindle.** Browse a mounted reader, see matches with your Mac library, and inspect device-only books. The Kindle view shows the reader's folder, with an edit icon to choose or change it. When the volume reports capacity, it also shows how much storage is used. The toolbar sorts device books by title, author, format, or recently added (file creation date, falling back to modification date). When metadata is unavailable, including for KFX files, the details panel shows the filename, format, size, and device path.
-- **Manage device copies.** Download supported books, back up files, or delete selected copies after a verified local backup. Update title, author, and publisher on supported DRM-free MOBI/AZW3 device files.
+## Why Smallibre?
 
-## Screenshots
+- **📚 A bookshelf that feels at home on your Mac.** Browse covers, search titles and authors, and sort your EPUB, MOBI, and standalone AZW3 books. Light and dark appearances are built in.
+- **✍️ Better details, more comfortable pages.** Edit metadata, review optional Open Library suggestions, and adjust EPUB fonts, spacing, and margins. Preview chapters before exporting.
+- **📖 From EPUB to Kindle.** Choose **Send to Kindle** to convert a supported EPUB and transfer a verified copy to a mounted Kindle. Prefer a file? **Export File…** offers EPUB or Kindle AZW3.
+- **🔌 Manage the books on your reader.** Browse a mounted device, see which books match your library, download copies, and back up files. Supported device edits and deletions require a verified local backup.
+- **🪶 Small by design.** Written in Swift with a custom book engine. No Calibre installation or additional runtime is needed.
 
-Browse your library and inspect book details.
+## Small app, small footprint
 
-![Smallibre library showing five demo books and the selected book’s details](docs/screenshots/library.jpg)
+Smallibre aims to keep the download and installation light. For the versions measured below, it is **about 99% smaller** than Calibre in both categories. Calibre offers a much broader toolkit; Smallibre deliberately focuses on a smaller set of macOS reading tasks.
 
-Preview EPUB chapters before exporting.
+![App size comparison in decimal MB: Smallibre downloads at 3.2 MB and installs at 8.8 MB; Calibre downloads at 344.4 MB and installs at 1153.3 MB](docs/screenshots/app-size.svg)
 
-![Smallibre EPUB preview showing the authored Small Hours sample](docs/screenshots/preview.jpg)
+| App | Download through Homebrew | Installed app |
+| --- | ---: | ---: |
+| **Smallibre 0.4.1** | **3.2 MB** | **8.8 MB** |
+| Calibre 9.14.0 | 344.4 MB | 1,153.3 MB |
 
-Adjust book details, body typography, line spacing, and margins.
+*Measured September 11, 2026; decimal MB. Downloads are the ZIP/DMG used by the casks; installed sizes count app-bundle file bytes, excluding book libraries and caches. Smallibre is arm64; Calibre is a universal Intel/Apple Silicon bundle. [Sources and measurement details](docs/app-size-comparison.md).*
 
-![Smallibre details and typography editor](docs/screenshots/typography.jpg)
+## 🚀 Install
 
-*Captured from the macOS app using a disposable library of authored demo books.*
-
-## Install
-
-Requires **Apple Silicon and macOS 14 or later**:
+Requires **Apple Silicon and macOS 14 or later**.
 
 ```sh
 brew install --cask tajchert/tap/smallibre
 ```
 
-Or download the app from [GitHub Releases](https://github.com/tajchert/smallibre/releases). The app is not notarized. If macOS blocks the first launch, use **System Settings → Privacy & Security → Open Anyway** after reviewing the app ([Apple’s guidance](https://support.apple.com/en-us/102445)).
+Or download from [GitHub Releases](https://github.com/tajchert/smallibre/releases).
 
-## Build from source
+**First launch:** the app is ad-hoc signed and not notarized. If macOS blocks it, review the app and choose **System Settings → Privacy & Security → Open Anyway** ([Apple’s guidance](https://support.apple.com/en-us/102445)).
 
-You need macOS 14 or later and an Xcode toolchain with Swift 6.
+### Your first book
 
-From the project folder:
+1. Open Smallibre and choose **Explore with a sample book**, or drop in your own ebooks.
+2. Select a book to preview it or open **Details & Typography…**.
+3. Connect a mounted Kindle and choose **Send to Kindle**, or press **⌘E** to export a file.
+
+To update an existing Homebrew installation:
+
+```sh
+brew update
+brew upgrade --cask smallibre
+```
+
+## Reader compatibility
+
+**Your reader must appear as a mounted drive or folder on your Mac.** Smallibre detects mounted Kindles automatically, with a folder picker as a fallback. The mounted workflow has been tested on a Kindle Paperwhite (11th generation); other models still need coverage.
+
+| Book or connection | What works today |
+| --- | --- |
+| Reflowable EPUB | Import, preview, edit metadata and typography, export EPUB |
+| Supported EPUB → Kindle AZW3 | Native conversion, conversion notes, local export, mounted-Kindle sending |
+| DRM-free MOBI / standalone AZW3 | Import and export original bytes; metadata updates on supported device copies |
+| Mounted USB reader | Browse, transfer, download, back up, and delete selected copies |
+| MTP reader | No app connection or transfers yet |
+| DRM-protected books / KFX | Limited device listing; no decryption, import, or editing |
+
+**Conversion is focused on ordinary reflowable books.** Complex layouts, SVG/MathML, scripts, and media overlays are unsupported. Custom fonts fall back to reader fonts. Review the [conversion limitations](docs/epub-kindle-limitations.md) and check the result on your reader.
+
+There is no automatic mirroring. If a transfer is interrupted, check **Backups & history** and refresh the reader before retrying; cancellation does not prove that nothing was written.
+
+## Where the project is going
+
+The goal is a **focused native Mac companion for your ebooks**, with quick local import, restrained personalization, and dependable transfers.
+
+Next priorities:
+
+- Broader EPUB conversion compatibility and more testing on real readers.
+- Reliable MTP connections and transfers.
+- More library-management tools and measured large-library performance.
+- Developer ID signed, notarized downloads and release automation.
+
+## Build & contribute
+
+Bug reports, reader compatibility reports, and focused fixes are welcome. Start with [Contributing](CONTRIBUTING.md).
+
+To build locally, use macOS 14+ and an Xcode toolchain with Swift 6:
 
 ```sh
 swift test
@@ -63,74 +112,26 @@ bash scripts/build-app.sh
 open build/Smallibre.app
 ```
 
-Choose **Explore with a sample book**, or drop your own EPUB or MOBI into the window. Select a book to see its details, personalize an EPUB, or prepare an export.
+The build targets your Mac’s architecture and signs the app locally. You can also open `Package.swift` in Xcode.
 
-The build script creates an app for your Mac’s architecture and signs it locally. It does not create a universal or notarized release. You can also open `Package.swift` in Xcode to work on the project.
-
-## Keyboard shortcuts
-
-Shortcuts are listed in the app’s native menus and apply to the active library window.
+<details>
+<summary><b>Handy keyboard shortcuts</b></summary>
 
 | Shortcut | Action |
 | --- | --- |
-| ⌘K | Search all library books, leaving the current filter or reader view |
-| ⌘F | Search the current collection or reader |
-| ⌘1–⌘6 | All Books, Personalized, EPUB, MOBI, Kindle / AZW3, Kindle Reader |
 | ⌘O | Add books |
+| ⌘K / ⌘F | Search all books / the current collection |
 | ⌘R | Preview the selected EPUB |
 | ⌘I | Edit the selected book’s details |
-| ⌘E | Export file (format and location) |
-| ⇧⌘F | Show the selected original in Finder |
-| ⇧⌘R | Refresh the connected reader when idle |
+| ⌘E | Export a file |
+| ⇧⌘F | Reveal the original in Finder |
+| ⇧⌘R | Refresh the reader |
+| ⌘1–⌘6 | Switch library collections and reader view |
 
-Search matches titles and authors. Book commands require a selection visible in the current library collection.
+Book commands require a selected book. The app’s native menus list all shortcuts.
 
-In the Sort menu, select the active option again to toggle ascending or descending order. This works in both the library and Kindle views; the active option shows a checkmark and its direction. Choosing a different sort starts with newest first for Recently added or A–Z for Title, Author and Format.
+</details>
 
-## Will it work with my reader?
+For deeper technical context, see [development guidance](AGENTS.md), the [EPUB-to-Kindle workflow](docs/architecture/epub-kindle-workflow.md), [reader reliability](docs/architecture/reader-reliability.md), and [MTP status](docs/handoffs/mtp-readers.md).
 
-Smallibre currently works with readers that appear as a mounted drive or folder on your Mac. Kindle Paperwhite testing has covered inventory, transfer, download, backup, deletion of a disposable copy, and metadata updates. Reading the test copy was confirmed on the device; other models and books still need testing.
-
-| Book or connection | Current support |
-| --- | --- |
-| Reflowable EPUB | Import, preview, edit details and typography, export EPUB |
-| DRM-free MOBI / standalone AZW3 | Import and export; supported device copies allow metadata updates |
-| EPUB → Kindle format | Native AZW3 preparation, automatic mounted-Kindle send, conversion notes and local export |
-| Mounted USB reader | Inventory and explicit transfer/management actions |
-| MTP reader | Developer read-only probe; no app connection or transfer support |
-| DRM-protected books / KFX | Limited device listing; no decryption, import, or editing |
-
-Library metadata edits are embedded in EPUB exports. MOBI/AZW3 exports from the library preserve original bytes; editing device metadata is a separate action. Smallibre does not automatically mirror or delete books when you connect a reader. Reader helpers run only for individual operations, without periodic polling. Unrelated volume mounts do not trigger scans. System sleep cancels reader work and invalidates device selections; after waking, refresh explicitly and check Backups & history before retrying an interrupted write. Cancellation does not prove a write failed, and interrupted writes are never automatically replayed.
-
-Fixed-layout EPUBs, scripted books, media overlays, embedded-font customization, and broad format conversion are outside the current scope. Large-library performance has not yet been established.
-
-## Conversion and MTP development status
-
-Native conversion now prepares immutable AZW3 artifacts with source, settings, converter-version and output hashes. A send uses the exact prepared artifact, creates a new device file, verifies a full readback and retains a backup and receipt. Corrupt cached files are rejected; interrupted writes are never retried automatically.
-
-The supported profile is deliberately bounded: reflowable EPUB 2/3, ordinary prose and lists, internal links, PNG/JPEG images, cover metadata, and basic inline/linked CSS. Nested navigation is flattened with a conversion note. DRM, SVG/MathML, scripts, media overlays, remote resources and CSS imports are rejected. Version 0.3.0 adds font fallback for embedded and recognized obfuscated fonts, plus simple page-margin normalization. See the [known limitations and missing features](docs/epub-kindle-limitations.md) before relying on conversion for complex books.
-
-Earlier authored native books were read on a **Kindle Paperwhite (11th generation), firmware 5.19.2**, establishing the fragment-selector and document-UUID fixes. The expanded conversion profile still needs on-device rendering coverage; automated structure and transfer verification are not a readability certification. See the [conversion handoff](docs/handoffs/epub-to-kindle.md) and [hardware evidence](docs/architecture/azw3-format-evidence.md).
-
-MTP work includes protocol/transport foundations and a bounded read-only USB probe. Discovery integration and reliable MTP downloads, uploads, and deletion are not delivered. The tested Paperwhite used mounted USB storage, so those tests do not certify MTP. See the [MTP handoff](docs/handoffs/mtp-readers.md).
-
-## Your files stay yours
-
-Smallibre keeps a private original of each imported book. Edits and exports leave that original intact. Device deletion and metadata updates first save a verified local backup; backups are accessible through **Backups & history**.
-
-Your library lives in `~/Library/Application Support/Smallibre/`. Quit the app before backing up that whole folder. Earlier Calibre Nova libraries migrate automatically, with a compatibility link for existing backup paths; quit the old app first.
-
-Metadata search is optional: it sends the title and author query to Open Library when requested. EPUB previews block network access.
-
-## What’s next
-
-- Broader book compatibility and more library-management tools.
-- Broaden native EPUB-to-AZW3 compatibility and hardware coverage; MOBI-to-EPUB remains future work.
-- Turn the MTP foundations into reliable reader connections and transfers, with hardware coverage.
-- Signed, notarized downloads and release automation.
-
-## Help shape Smallibre
-
-Bug reports, small fixes, and compatibility reports are welcome. Start with [Contributing](CONTRIBUTING.md). For architecture, development conventions, and test guidance, see [AGENTS.md](AGENTS.md).
-
-Smallibre is licensed under [GPL-3.0-only](LICENSE). Its engine is a custom implementation; no Calibre code is bundled. The included “Small Hours” sample and synthetic test fixtures were authored for this project.
+Licensed under **[GPL-3.0-only](LICENSE)**. No Calibre code is bundled. The included “Small Hours” sample and test fixtures were authored for this project.
