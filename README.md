@@ -89,6 +89,22 @@ brew upgrade --cask smallibre
 
 There is no automatic mirroring. If a transfer is interrupted, check **Backups & history** and refresh the reader before retrying; cancellation does not prove that nothing was written.
 
+## Smallibre or Calibre?
+
+**Choose Smallibre for a focused native Mac workflow.** [Calibre](https://manual.calibre-ebook.com/) offers a broader toolkit, especially for advanced library management and conversion.
+
+| Feature | Smallibre today | Calibre |
+| --- | --- | --- |
+| Conversion | Supported EPUB → AZW3 | Many formats, advanced controls, bulk conversion |
+| Organization | Covers, search, sorting, format filters | Also tags, series, ratings, custom fields, saved searches |
+| Bulk editing | Individual book edits | Metadata and cover updates across many books |
+| Book formats | Separate imports | Multiple formats grouped under one book |
+| Reading & search | EPUB preview; title/author search | Full reader, highlights, bookmarks, full-text search |
+| Content editing | Metadata and EPUB typography | EPUB/AZW3 HTML and CSS editor |
+| Reader connections | Mounted drives/folders | Broader device support, MTP and wireless/email options |
+| Extras | Local library | Web library server, news downloads, plugins, CLI tools |
+| Platforms | macOS | macOS, Windows, Linux |
+
 ## Where the project is going
 
 The goal is a **focused native Mac companion for your ebooks**, with quick local import, restrained personalization, and dependable transfers.
